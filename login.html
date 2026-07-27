@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login — Snapcash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+    <nav class="nav-links">
+      <a href="login.html" class="active">Login</a>
+      <a class="btn btn-blue" href="apply.html">Apply</a>
+    </nav>
+  </div>
+</div>
+
+<main class="app-main">
+  <p class="kicker">Welcome back</p>
+  <h1 style="font-size: clamp(28px,4vw,42px); margin-bottom: 6px;">Log in.</h1>
+  <p class="sub" style="margin-bottom: 26px;">Track your application, see your loan, manage your account.</p>
+
+  <div class="alert" id="msg"></div>
+
+  <div class="form-card" style="max-width:none;">
+    <div class="form-group">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" placeholder="you@example.com" />
+    </div>
+    <div class="form-group">
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password" placeholder="Your password" />
+    </div>
+    <button class="btn btn-blue" style="width:100%;" id="btn-login">Log in</button>
+    <p class="linkline"><a href="#" id="forgot">Forgot your password?</a></p>
+    <p class="linkline" style="margin-top:8px;">New to Snapcash? <a href="apply.html">Apply — it creates your account</a></p>
+  </div>
+</main>
+
+<script src="supabase-loader.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>
+(function () {
+  var A = window.SnapAuth, msg = document.getElementById('msg');
+  if (A.showConfigWarning(msg)) return;
+  var db = A.client;
+
+  /* already logged in? straight to dashboard */
+  A.session().then(function (s) { if (s) location.href = 'dashboard.html'; });
+
+  async function doLogin() {
+    var email = document.getElementById('l-email').value.trim();
+    var pass = document.getElementById('l-pass').value;
+    if (!email || !pass) return A.err(msg, 'Please enter your email and password.');
+    var btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.classList.add('btn-loading');
+    var r = await db.auth.signInWithPassword({ email: email, password: pass });
+    btn.disabled = false; btn.classList.remove('btn-loading');
+    if (r.error) {
+      if (/not confirmed/i.test(r.error.message))
+        return A.err(msg, 'Your email isn\u2019t verified yet — check your inbox for the confirmation link.');
+      return A.err(msg, 'Login failed: ' + r.error.message);
+    }
+    location.href = 'dashboard.html';
+  }
+  document.getElementById('btn-login').addEventListener('click', doLogin);
+  document.getElementById('l-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+
+  document.getElementById('forgot').addEventListener('click', async function (e) {
+    e.preventDefault();
+    var email = document.getElementById('l-email').value.trim();
+    if (!email) return A.err(msg, 'Type your email above first, then click "Forgot your password?" again.');
+    var r = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/reset.html' });
+    r.error ? A.err(msg, r.error.message)
+            : A.ok(msg, 'Password reset email sent to ' + email + ' — check your inbox.');
+  });
+})();
+</script>
+</body>
+</html>

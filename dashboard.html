@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>My Snapcash — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+    <nav class="nav-links">
+      <a href="#" data-signout>Log out</a>
+      <a class="btn btn-blue" href="dashboard.html">My Snapcash</a>
+    </nav>
+  </div>
+</div>
+
+<main class="app-main wide">
+  <div class="alert" id="msg"></div>
+
+  <div class="dash-head">
+    <div>
+      <p class="kicker" style="margin-bottom:8px;">My Snapcash</p>
+      <h1 id="greet">Good day.</h1>
+    </div>
+    <span class="badge neutral" id="acct-badge">Account active</span>
+  </div>
+
+  <!-- ============ APPLICATION / LOAN CARD ============ -->
+  <div class="form-card" style="max-width:none; margin-bottom:22px;" id="loan-card">
+    <p style="font-size:14px; color:var(--muted);">Loading your application…</p>
+  </div>
+
+  <!-- ============ JOURNEY CHECKLIST ============ -->
+  <div style="display:grid; gap:22px; grid-template-columns:1fr;" class="dash-grid">
+    <div class="form-card" style="max-width:none;">
+      <h3 style="margin-bottom:14px;">Your journey</h3>
+      <ul class="todo" id="todo"></ul>
+    </div>
+    <div class="form-card" style="max-width:none;">
+      <h3 style="margin-bottom:14px;">Good to know</h3>
+      <ul class="todo">
+        <li class="done"><span class="t-ic">✓</span><span>Your quote is fixed — the total you accepted never grows.<small>Settle early and you pay interest only for days held.</small></span></li>
+        <li class="done"><span class="t-ic">✓</span><span>One repayment, one DebiCheck mandate you approve yourself.<small>Nothing is ever collected without your authorisation.</small></span></li>
+        <li class="done"><span class="t-ic">✓</span><span>Questions or trouble ahead of your due date?<small>Reach out early — it's always the cheaper path.</small></span></li>
+      </ul>
+    </div>
+  </div>
+  <style>@media (min-width: 860px){ .dash-grid { grid-template-columns: 1fr 1fr !important; } }</style>
+</main>
+
+<script src="supabase-loader.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>
+(function () {
+  var A = window.SnapAuth, msg = document.getElementById('msg');
+  if (A.showConfigWarning(msg)) return;
+  var db = A.client;
+
+  var fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
+  var DATE = function (d) { return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }); };
+
+  var STATUS = {
+    under_review: { badge: 'review',   label: 'Under review', tl: 1,
+      copy: 'We\u2019re assessing your application now. You\u2019ll be notified the moment there\u2019s a decision — usually within one business day in this phase.' },
+    pending_kyc:  { badge: 'review',   label: 'Verification pending', tl: 1,
+      copy: 'We\u2019re confirming your identity and bank details.' },
+    approved:     { badge: 'approved', label: 'Approved', tl: 2,
+      copy: 'Approved! Next step is your DebiCheck mandate — that feature switches on when bank verification launches. We\u2019ll email you the moment it\u2019s ready.' },
+    declined:     { badge: 'declined', label: 'Declined', tl: 2,
+      copy: 'This application wasn\u2019t approved. That usually means the affordability numbers didn\u2019t support it right now — you\u2019re welcome to apply again when your situation changes.' },
+    disbursed:    { badge: 'approved', label: 'Loan active', tl: 3,
+      copy: 'Your cash has been paid out. Your single repayment collects on the due date below via your DebiCheck mandate.' },
+    settled:      { badge: 'neutral',  label: 'Settled', tl: 3,
+      copy: 'All settled — nothing owing. Need a new cash bridge? Apply any time.' }
+  };
+
+  async function load() {
+    var s = await A.requireAuth('login.html'); if (!s) return;
+    var u = s.user;
+
+    if (new URLSearchParams(location.search).get('submitted'))
+      A.ok(msg, 'Application received! Here\u2019s where you track it.');
+
+    /* profile */
+    var prof = (await db.from('profiles').select('*').eq('id', u.id).maybeSingle()).data;
+    document.getElementById('greet').textContent =
+      prof ? 'Good day, ' + prof.first_name + '.' : 'Good day.';
+
+    /* latest application */
+    var app = (await db.from('loan_applications').select('*')
+      .eq('user_id', u.id).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
+
+    renderLoanCard(app, prof);
+    renderTodo(u, prof, app);
+  }
+
+  function renderLoanCard(app, prof) {
+    var el = document.getElementById('loan-card');
+
+    if (!app) {
+      el.innerHTML =
+        '<h3 style="margin-bottom:6px;">No application yet</h3>' +
+        '<p style="font-size:14.5px; margin-bottom:18px;">' +
+        (prof && prof.popia_accepted
+          ? 'You\u2019re all set up — choose an amount and submit when you\u2019re ready.'
+          : 'Finish your application to get your first cash bridge.') +
+        '</p><a class="btn btn-blue" href="apply.html">' +
+        (prof && prof.popia_accepted ? 'Choose my amount' : 'Continue my application') + '</a>';
+      return;
+    }
+
+    var st = STATUS[app.status] || STATUS.under_review;
+    var names = ['Received', 'Under review', 'Decision', 'Payout'];
+    var tl = names.map(function (n, i) {
+      var cls = i < st.tl ? 'done' : (i === st.tl ? 'now' : '');
+      return '<div class="' + cls + '"><div class="bar"></div><span>' + n + '</span></div>';
+    }).join('');
+
+    el.innerHTML =
+      '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">' +
+        '<h3>Application \u00b7 ' + fmt.format(app.requested_amount) + ' over ' + app.term_days + ' days</h3>' +
+        '<span class="badge ' + st.badge + '">' + st.label + '</span>' +
+      '</div>' +
+      '<div class="tl">' + tl + '</div>' +
+      '<p style="font-size:14.5px; margin:16px 0 20px;">' + st.copy + '</p>' +
+      '<div class="calc-quote" style="margin:0;">' +
+        '<div class="q-line"><span>Cash to your account</span><span>' + fmt.format(app.requested_amount) + '</span></div>' +
+        '<div class="q-line"><span>Once-off initiation fee</span><span>' + fmt.format(app.initiation_fee) + '</span></div>' +
+        '<div class="q-line"><span>Service fee (' + app.term_days + ' days)</span><span>' + fmt.format(app.service_fee) + '</span></div>' +
+        '<div class="q-line"><span>Interest (0,17%/day)</span><span>' + fmt.format(app.interest_amount) + '</span></div>' +
+        '<div class="q-total"><span class="lbl">One repayment on ' + (app.due_date ? DATE(app.due_date) : '\u2014') + '</span>' +
+        '<span class="amt">' + fmt.format(app.total_repayable) + '</span></div>' +
+      '</div>' +
+      (app.status === 'declined' || app.status === 'settled'
+        ? '<a class="btn btn-blue" style="margin-top:18px;" href="apply.html">Start a new application</a>' : '');
+  }
+
+  function renderTodo(u, prof, app) {
+    var emailVerified = !!u.email_confirmed_at;
+    var items = [
+      { done: true, t: 'Account created', s: u.email },
+      { done: emailVerified, t: 'Email verified',
+        s: emailVerified ? 'Confirmed' : 'Check your inbox for the confirmation link' },
+      { done: !!prof, t: 'Personal details', s: prof ? 'Saved and ready for verification' : 'Not completed yet' },
+      { done: !!(prof && prof.popia_accepted), t: 'POPIA consent recorded',
+        s: prof && prof.popia_accepted_at ? 'Recorded ' + DATE(prof.popia_accepted_at) : 'Required before assessment' },
+      { done: !!app, t: 'Application submitted', s: app ? 'Submitted ' + DATE(app.submitted_at) : 'Choose an amount to submit' },
+      { done: false, soon: true, t: 'Bank verification (Stitch)', s: 'Launching soon — we\u2019ll email you' },
+      { done: false, soon: true, t: 'SMS verification', s: 'Launching soon' },
+      { done: false, soon: true, t: 'DebiCheck mandate', s: 'Activates after bank verification' }
+    ];
+    document.getElementById('todo').innerHTML = items.map(function (i) {
+      return '<li class="' + (i.done ? 'done' : 'todo-pending') + '">' +
+        '<span class="t-ic">' + (i.done ? '\u2713' : (i.soon ? '\u2026' : '!')) + '</span>' +
+        '<span>' + i.t + '<small>' + i.s + '</small></span></li>';
+    }).join('');
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reset password — Snapcash</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+    <nav class="nav-links"><a href="login.html">Login</a><a class="btn btn-blue" href="apply.html">Apply</a></nav>
+  </div>
+</div>
+<main class="app-main">
+  <p class="kicker">Account</p>
+  <h1 style="font-size: clamp(28px,4vw,42px); margin-bottom: 6px;">Choose a new password.</h1>
+  <p class="sub" style="margin-bottom: 26px;">You arrived here from the reset link in your email.</p>
+  <div class="alert" id="msg"></div>
+  <div class="form-card" style="max-width:none;">
+    <div class="form-group"><label for="r-pass">New password</label><input id="r-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" /></div>
+    <div class="form-group"><label for="r-pass2">Confirm new password</label><input id="r-pass2" type="password" autocomplete="new-password" /></div>
+    <button class="btn btn-blue" style="width:100%;" id="btn-reset">Save new password</button>
+  </div>
+</main>
+<script src="supabase-loader.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>
+(function () {
+  var A = window.SnapAuth, msg = document.getElementById('msg');
+  if (A.showConfigWarning(msg)) return;
+  document.getElementById('btn-reset').addEventListener('click', async function () {
+    var p1 = document.getElementById('r-pass').value, p2 = document.getElementById('r-pass2').value;
+    if (p1.length < 8) return A.err(msg, 'Password must be at least 8 characters.');
+    if (p1 !== p2) return A.err(msg, 'The two passwords don\u2019t match.');
+    var r = await A.client.auth.updateUser({ password: p1 });
+    if (r.error) return A.err(msg, r.error.message + ' — open the link from your email again.');
+    A.ok(msg, 'Password updated. Taking you to your dashboard\u2026');
+    setTimeout(function(){ location.href = 'dashboard.html'; }, 1200);
+  });
+})();
+</script>
+</body>
+</html>

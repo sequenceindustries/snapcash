@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Snapcash — your payday cash bridge, every cost shown upfront</title>
+<meta name="description" content="Snapcash is a 100% online cash bridge for South Africans. R500–R4 000 over 5–30 days, every cost shown upfront, all fees capped by the National Credit Act." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="scroll-progress" aria-hidden="true"></div>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="login.html">Login</a>
+      <a class="btn btn-blue" href="apply.html" data-magnetic>Apply</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <section class="hero" aria-labelledby="hero-h">
+      <span class="blob blob-1" aria-hidden="true"></span>
+      <span class="blob blob-2" aria-hidden="true"></span>
+      <div>
+        <h1 id="hero-h" data-hero>Your payday gap matters, and that matters to us.</h1>
+        <p class="hero-sub sub" data-hero>Snapcash is your go-to cash bridge when the month outlasts the money. Borrow R500 to R4 000 for 5 to 30 days — every cost shown before you apply, every fee capped by the National Credit Act.</p>
+        <div class="hero-ctas" data-hero>
+          <a class="btn btn-blue" href="apply.html" data-magnetic>Get started</a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+      </div>
+
+      <div class="calc" id="quote" data-hero>
+        <div class="calc-title">See your exact cost — before you apply</div>
+        <div class="calc-row-head">
+          <label for="amt">I need</label>
+          <span class="calc-value" id="amt-out">R 1 500,00</span>
+        </div>
+        <input type="range" id="amt" min="500" max="4000" step="100" value="1500" aria-label="Loan amount in rand" />
+        <div class="calc-minmax"><span>R 500</span><span>R 4 000</span></div>
+
+        <div class="calc-row-head">
+          <label for="days">I'll repay in</label>
+          <span class="calc-value" id="days-out">21 days</span>
+        </div>
+        <input type="range" id="days" min="5" max="30" step="1" value="21" aria-label="Loan term in days" />
+        <div class="calc-minmax"><span>5 days</span><span>30 days</span></div>
+
+        <div class="calc-quote">
+          <div class="q-line"><span>Cash to your account</span><span id="q-p">—</span></div>
+          <div class="q-line"><span>Once-off initiation fee</span><span id="q-i">—</span></div>
+          <div class="q-line"><span id="q-s-label">Service fee</span><span id="q-s">—</span></div>
+          <div class="q-line"><span>Interest (0,17%/day)</span><span id="q-r">—</span></div>
+          <div class="q-total">
+            <span class="lbl" id="q-due">One repayment</span>
+            <span class="amt" id="q-t">—</span>
+          </div>
+        </div>
+
+        <a class="btn btn-blue" href="apply.html" id="apply-cta">Apply now</a>
+        <p class="calc-fine">All costs capped by the National Credit Act. This quote becomes binding only once your application is approved.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="tinted" aria-labelledby="ben-h">
+    <div class="wrap">
+      <p class="kicker reveal">Why Snapcash</p>
+      <h2 id="ben-h" class="reveal">Everything upfront. Always.</h2>
+      <p class="sub reveal">We show you every rand before you commit, and we never charge more than the law allows.</p>
+      <div class="cards">
+        <div class="card reveal" data-tilt>
+          <div class="num">✓</div>
+          <h3>Fixed total, no surprises</h3>
+          <p>Your total repayment is locked in before you apply — it never grows. Settle early and you pay interest only for the days you actually held the money.</p>
+        </div>
+        <div class="card reveal reveal-delay-1" data-tilt>
+          <div class="num">⚡</div>
+          <h3>Money in minutes</h3>
+          <p>Approved loans pay out through real-time clearing — cash reflects in your account within minutes, any day of the week, no branch queues.</p>
+        </div>
+        <div class="card reveal reveal-delay-2" data-tilt>
+          <div class="num">🔒</div>
+          <h3>One debit you control</h3>
+          <p>A single repayment via a DebiCheck mandate that you approve yourself in your banking app. Nothing is ever collected without your say-so.</p>
+        </div>
+        <div class="card reveal reveal-delay-3" data-tilt>
+          <div class="num">📄</div>
+          <h3>No paperwork</h3>
+          <p>Link your bank securely and we read what we need. Nothing to scan, upload or post — and your data is handled under POPIA with your recorded consent.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="how" aria-labelledby="how-h">
+    <p class="kicker reveal">Simple by design</p>
+    <h2 id="how-h" class="reveal">From slider to payout in four steps.</h2>
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-n">1</div>
+        <h3>Choose your amount</h3>
+        <p>Use the sliders to pick how much you need and when you'll repay. Your full cost shows instantly — no "subject to" small print.</p>
+      </div>
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-n">2</div>
+        <h3>Verify in minutes</h3>
+        <p>Link your bank securely. We verify your identity and assess affordability from your statements — nothing to scan or upload.</p>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-n">3</div>
+        <h3>Approve one debit</h3>
+        <p>Confirm a DebiCheck mandate in your own banking app, so your repayment happens once, on the date you chose — and only with your say-so.</p>
+      </div>
+      <div class="step-card reveal reveal-delay-3">
+        <div class="step-n">4</div>
+        <h3>Cash lands instantly</h3>
+        <p>Approved loans pay out through real-time clearing — money in your account in minutes, any day of the week.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tinted" id="eligibility" aria-labelledby="elig-h">
+    <div class="wrap elig-grid">
+      <div class="elig-intro reveal">
+        <p class="kicker">Eligibility criteria</p>
+        <h2 id="elig-h">Check your loan eligibility.</h2>
+        <p class="sub">Four things decide whether we can lend to you. If they all hold, you can apply right now — it costs nothing to find out.</p>
+        <a class="btn btn-blue" href="apply.html" data-magnetic>Apply</a>
+      </div>
+      <div class="elig-list">
+        <div class="elig-row reveal">
+          <span class="e-num">01</span>
+          <div>
+            <h3>Identity</h3>
+            <p>A valid South African ID number, 18 or older. We verify you electronically when you link your bank — the account holder must match the applicant. No certified copies, no branch visits.</p>
+          </div>
+        </div>
+        <div class="elig-row reveal">
+          <span class="e-num">02</span>
+          <div>
+            <h3>Income</h3>
+            <p>Verifiable income over the last 3 months — salary, wages or regular self-employed earnings, read directly from your linked bank statements. What counts is what actually lands in your account.</p>
+          </div>
+        </div>
+        <div class="elig-row reveal">
+          <span class="e-num">03</span>
+          <div>
+            <h3>Affordability</h3>
+            <p>The National Credit Act requires the repayment to fit your real budget — income minus commitments and living costs. If the numbers say a loan would strain you, we decline. That's protection, not punishment.</p>
+          </div>
+        </div>
+        <div class="elig-row reveal">
+          <span class="e-num">04</span>
+          <div>
+            <h3>Bank account</h3>
+            <p>A South African bank account in your own name with internet banking — where we pay your money instantly, and where your single DebiCheck repayment comes from.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap faq" id="faq" aria-labelledby="faq-h">
+    <h2 id="faq-h" class="reveal">Frequently asked.</h2>
+    <div class="reveal">
+      <details>
+        <summary>How fast will I get the money?</summary>
+        <p>Once your application is approved and you've confirmed your DebiCheck mandate, we pay out through real-time clearing. For most banks the money reflects within minutes, any day of the week.</p>
+      </details>
+      <details>
+        <summary>Do I need to send payslips or bank statements?</summary>
+        <p>No. You link your bank account securely, which lets us verify your identity and read your last 3 months of statements automatically. You never upload a document and we never see your banking password.</p>
+      </details>
+      <details>
+        <summary>What does it cost?</summary>
+        <p>Three charges, all capped by the National Credit Act: a once-off initiation fee, a service fee of R60 per month pro-rated to your term, and interest of 0,17% per day. The calculator at the top shows your exact total before you apply.</p>
+      </details>
+      <details>
+        <summary>What if I want to settle early?</summary>
+        <p>You can settle at any time. Interest is only charged for the days you actually held the money, and there is no early-settlement penalty — so paying back sooner always costs you less.</p>
+      </details>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="final reveal" aria-labelledby="cta-h">
+      <h2 id="cta-h">Ready when you are.</h2>
+      <p>Pick your amount, see your exact cost, and have cash in your account before the kettle boils.</p>
+      <a class="btn" href="apply.html" data-magnetic>Get started</a>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+        <p class="foot-blurb">Your payday gap matters, and that matters to us. A 100% online short-term lender for South Africa — small amounts, short terms, every cost upfront.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="apply.html">Apply</a>
+        <a href="login.html">Login</a>
+        <a href="#how">How it works</a>
+      </div>
+      <div class="foot-col">
+        <h4>Legal &amp; support</h4>
+        <a href="terms.html">Terms &amp; Conditions</a>
+        <a href="privacy.html">Privacy Policy (POPIA)</a>
+        <a href="paia.html">PAIA Manual</a>
+        <a href="responsible-lending.html">Responsible lending</a>
+        <a href="https://www.ncr.org.za" rel="noopener">Verify us at ncr.org.za</a>
+      </div>
+    </div>
+    <p class="compliance">
+      © 2026 Sequence Industries. All rights reserved. Sequence Industries is a registered credit provider (NCRCP 21330).
+      Loans of R500–R4 000 over 5–30 days, repaid in a single instalment. All fees and interest are within the maximum
+      rates prescribed for short-term credit transactions under the National Credit Act 34 of 2005. Personal information
+      is processed in accordance with the Protection of Personal Information Act 4 of 2013. Credit is subject to an
+      affordability assessment; borrowing what you cannot afford to repay can harm your credit record. If we cannot
+      resolve a complaint, you may approach the National Credit Regulator at www.ncr.org.za.
+    </p>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">↑</button>
+
+<script src="site.js"></script>
+<script src="anim.js"></script>
+</body>
+</html>

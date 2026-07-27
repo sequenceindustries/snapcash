@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin — Snapcash</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+.admin-nav { background: var(--tint); padding: 12px 0; border-bottom: 1px solid var(--line); }
+.admin-nav .wrap { display: flex; justify-content: space-between; align-items: center; }
+.admin-nav .logo { font-size: 18px; font-weight: 700; }
+.admin-content { display: grid; grid-template-columns: 220px 1fr; gap: 28px; padding: 40px 0; min-height: calc(100vh - 140px); }
+.admin-nav a { color: var(--ink); }
+.admin-sidebar { padding-right: 28px; border-right: 1px solid var(--line); }
+.admin-sidebar h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 14px; margin-top: 24px; }
+.admin-sidebar h3:first-child { margin-top: 0; }
+.admin-sidebar a { display: block; padding: 8px 0; font-size: 14px; color: var(--body); text-decoration: none; }
+.admin-sidebar a.on { color: var(--accent); font-weight: 600; }
+.admin-sidebar a:hover { color: var(--accent); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+table thead { background: var(--tint); }
+table th { text-align: left; padding: 12px; font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--line); }
+table td { padding: 12px; border-bottom: 1px solid var(--line); }
+table tr:hover { background: rgba(121,191,255,.05); }
+table a { color: var(--accent); text-decoration: none; font-weight: 500; }
+table a:hover { text-decoration: underline; }
+
+.status-badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+.status-under_review { background: rgba(255,196,87,.15); color: #b9791a; }
+.status-approved { background: rgba(121,255,178,.15); color: #1e8f5a; }
+.status-declined { background: rgba(255,120,100,.15); color: #c0392b; }
+.status-pending_kyc { background: rgba(121,191,255,.15); color: var(--accent); }
+
+.actions { display: flex; gap: 6px; }
+.actions button { padding: 6px 12px; font-size: 12px; border: 1px solid var(--line); background: transparent; color: var(--body); border-radius: 6px; cursor: pointer; }
+.actions button:hover { background: var(--tint); }
+.actions .approve { color: #1e8f5a; border-color: rgba(121,255,178,.3); }
+.actions .approve:hover { background: rgba(121,255,178,.1); }
+.actions .decline { color: #c0392b; border-color: rgba(255,120,100,.3); }
+.actions .decline:hover { background: rgba(255,120,100,.1); }
+
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); z-index: 1000; align-items: center; justify-content: center; }
+.modal.on { display: flex; }
+.modal-box { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 28px; max-width: 500px; width: 90%; }
+.modal-box h2 { margin-top: 0; }
+.modal-box .form-group { margin-bottom: 16px; }
+.modal-box .actions { justify-content: flex-end; margin-top: 20px; }
+.modal-box button { padding: 10px 18px; }
+
+.sort-col { cursor: pointer; user-select: none; }
+.sort-col::after { content: ' ↕'; font-size: 11px; opacity: .5; }
+.sort-col.asc::after { content: ' ↑'; opacity: 1; }
+.sort-col.desc::after { content: ' ↓'; opacity: 1; }
+
+.empty { padding: 60px 20px; text-align: center; color: var(--muted); }
+.empty p { margin: 0; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="admin-nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash admin</a>
+    <div style="display:flex; gap:16px; align-items:center;">
+      <span id="user-email" style="font-size:13px;"></span>
+      <a href="#" id="signout" style="font-size:13px; color:var(--body);">Log out</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="display:grid; grid-template-columns: 220px 1fr; gap:28px; padding:40px 0; min-height:calc(100vh - 140px);">
+  <aside class="admin-sidebar">
+    <h3>Review</h3>
+    <a href="#" class="nav-link on" data-view="queue">Application queue</a>
+    <a href="#" class="nav-link" data-view="approved">Approved</a>
+    <a href="#" class="nav-link" data-view="declined">Declined</a>
+    <h3>Operations</h3>
+    <a href="#" class="nav-link" data-view="emails">Email logs</a>
+    <a href="#" class="nav-link" data-view="admins">Manage admins</a>
+  </aside>
+
+  <main>
+    <div id="msg" class="alert" style="margin-bottom:20px;"></div>
+
+    <!-- QUEUE view -->
+    <div id="view-queue" class="view on">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h1 style="margin:0; font-size:28px;">Applications</h1>
+        <div style="font-size:13px; color:var(--muted);">
+          <span id="queue-count">—</span> under review
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="table-queue">
+          <thead>
+            <tr>
+              <th class="sort-col" data-col="created_at">Received ↕</th>
+              <th class="sort-col" data-col="requested_amount">Amount ↕</th>
+              <th>Applicant</th>
+              <th>Term</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="queue-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="queue-empty"><p>No applications under review.</p></div>
+    </div>
+
+    <!-- APPROVED view -->
+    <div id="view-approved" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Approved</h1>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Amount</th>
+              <th>Approved on</th>
+              <th>Reviewed by</th>
+            </tr>
+          </thead>
+          <tbody id="approved-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="approved-empty"><p>No approved applications.</p></div>
+    </div>
+
+    <!-- DECLINED view -->
+    <div id="view-declined" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Declined</h1>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Amount</th>
+              <th>Declined on</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="declined-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="declined-empty"><p>No declined applications.</p></div>
+    </div>
+
+    <!-- EMAIL LOGS view -->
+    <div id="view-emails" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Email logs</h1>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Sent</th>
+              <th>To</th>
+              <th>Type</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="email-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="email-empty"><p>No emails sent yet.</p></div>
+    </div>
+
+    <!-- ADMINS view -->
+    <div id="view-admins" class="view">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h1 style="margin:0; font-size:28px;">Admins</h1>
+        <button class="btn btn-blue" id="btn-invite">Invite admin</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Invited</th>
+            </tr>
+          </thead>
+          <tbody id="admin-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="admin-empty"><p>No other admins yet.</p></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: approve/decline -->
+<div class="modal" id="modal-decision">
+  <div class="modal-box">
+    <h2 id="modal-title">Approve application?</h2>
+    <p id="modal-details"></p>
+    <div class="form-group">
+      <label for="modal-notes">Notes (optional)</label>
+      <textarea id="modal-notes" style="width:100%; min-height:80px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-family:Inter; font-size:13px;"></textarea>
+    </div>
+    <div class="actions">
+      <button onclick="closeModal()" class="btn">Cancel</button>
+      <button id="modal-confirm" class="btn btn-blue">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: invite admin -->
+<div class="modal" id="modal-invite">
+  <div class="modal-box">
+    <h2>Invite admin</h2>
+    <div class="form-group">
+      <label for="invite-email">Email address</label>
+      <input id="invite-email" type="email" placeholder="admin@example.com" />
+    </div>
+    <div class="form-group">
+      <label for="invite-role">Role</label>
+      <select id="invite-role">
+        <option value="reviewer">Reviewer (view only)</option>
+        <option value="approver">Approver (can approve/decline)</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button onclick="closeModal()" class="btn">Cancel</button>
+      <button id="btn-send-invite" class="btn btn-blue">Send invite</button>
+    </div>
+  </div>
+</div>
+
+<script src="supabase-loader.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>
+(function () {
+  var A = window.SnapAuth, msg = document.getElementById('msg');
+  if (A.showConfigWarning(msg)) return;
+  var db = A.client;
+
+  var fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
+  var DATE = function (d) { return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  var STATE = { sortCol: 'created_at', sortDir: 'desc', currentView: 'queue', apps: [], emails: [], admins: [] };
+
+  async function auth() {
+    var s = await A.requireAuth('login.html'); if (!s) return;
+    document.getElementById('user-email').textContent = s.user.email;
+
+    /* Check if admin */
+    var admin = (await db.from('admin_users').select('id').eq('email', s.user.email).eq('status', 'active').maybeSingle()).data;
+    if (!admin) { A.err(msg, 'Access denied: not an admin.'); location.href = 'index.html'; return; }
+
+    load();
+  }
+
+  async function load() {
+    /* Queue: under_review applications */
+    var qr = await db.from('loan_applications')
+      .select('id, user_id, requested_amount, term_days, total_repayable, status, created_at, profiles(first_name, last_name)')
+      .eq('status', 'under_review')
+      .order('created_at', { ascending: false });
+    STATE.apps = qr.data || [];
+
+    /* Emails: recent logs */
+    var er = await db.from('email_logs').select('*').order('created_at', { ascending: false }).limit(50);
+    STATE.emails = er.data || [];
+
+    /* Admins */
+    var ar = await db.from('admin_users').select('*').order('created_at', { ascending: false });
+    STATE.admins = ar.data || [];
+
+    render();
+  }
+
+  function render() {
+    renderQueue();
+    renderApproved();
+    renderDeclined();
+    renderEmails();
+    renderAdmins();
+  }
+
+  function renderQueue() {
+    var rows = STATE.apps.map(function (app) {
+      var name = app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '—';
+      return '<tr>' +
+        '<td>' + DATE(app.created_at) + '</td>' +
+        '<td>' + fmt.format(app.requested_amount) + '</td>' +
+        '<td><strong>' + name + '</strong></td>' +
+        '<td>' + app.term_days + 'd</td>' +
+        '<td><span class="status-badge status-' + app.status + '">' + (app.status === 'under_review' ? 'Under review' : app.status) + '</span></td>' +
+        '<td><div class="actions">' +
+          '<button class="approve" onclick="decide(\'' + app.id + '\', \'approved\')">Approve</button>' +
+          '<button class="decline" onclick="decide(\'' + app.id + '\', \'declined\')">Decline</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('queue-rows').innerHTML = rows;
+    document.getElementById('queue-empty').style.display = rows ? 'none' : 'block';
+    document.getElementById('queue-count').textContent = STATE.apps.length;
+  }
+
+  function renderApproved() {
+    var rows = (function() {
+      var all = [];
+      for (var i = 0; i < 100; i++) {
+        var r = db.from('loan_applications').select('*').eq('status','approved').order('reviewed_at',{ascending:false}).limit(20);
+      }
+      return ''; // stub for now
+    })();
+    document.getElementById('approved-rows').innerHTML = rows;
+    document.getElementById('approved-empty').style.display = rows ? 'none' : 'block';
+  }
+
+  function renderDeclined() {
+    document.getElementById('declined-rows').innerHTML = '';
+    document.getElementById('declined-empty').style.display = 'block';
+  }
+
+  function renderEmails() {
+    var rows = STATE.emails.map(function (e) {
+      return '<tr>' +
+        '<td>' + DATE(e.created_at) + '</td>' +
+        '<td>' + e.recipient_email + '</td>' +
+        '<td>' + e.email_type + '</td>' +
+        '<td><span class="status-badge" style="background:rgba(121,191,255,.15); color:var(--accent);">' + e.status + '</span></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('email-rows').innerHTML = rows;
+    document.getElementById('email-empty').style.display = rows ? 'none' : 'block';
+  }
+
+  function renderAdmins() {
+    var rows = STATE.admins.filter(function(a) { return a.email !== 'sequence.2027@gmail.com'; }).map(function (a) {
+      return '<tr>' +
+        '<td>' + a.email + '</td>' +
+        '<td>' + a.role + '</td>' +
+        '<td><span class="status-badge">' + a.status + '</span></td>' +
+        '<td>' + (a.invited_at ? DATE(a.invited_at) : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('admin-rows').innerHTML = rows;
+    document.getElementById('admin-empty').style.display = rows ? 'none' : 'block';
+  }
+
+  window.decide = async function(appId, decision) {
+    var app = STATE.apps.find(function(a) { return a.id === appId; });
+    document.getElementById('modal-title').textContent = decision === 'approved' ? 'Approve application?' : 'Decline application?';
+    var name = app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '—';
+    document.getElementById('modal-details').textContent = name + ' — ' + fmt.format(app.requested_amount);
+    document.getElementById('modal-notes').value = '';
+    document.getElementById('modal-confirm').onclick = function() { submitDecision(appId, decision); };
+    document.getElementById('modal-decision').classList.add('on');
+  };
+
+  async function submitDecision(appId, decision) {
+    var notes = document.getElementById('modal-notes').value;
+    closeModal();
+    var s = await A.session();
+    var btn = document.getElementById('modal-confirm');
+    btn.disabled = true;
+
+    /* Call backend endpoint to approve/decline */
+    var r = await fetch('https://snapcash-gyxrfi0u-sequenceindustries.vercel.app/api/admin-backend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.session.access_token },
+      body: JSON.stringify({ app_id: appId, decision: decision, notes: notes })
+    });
+
+    btn.disabled = false;
+    var body = await r.json();
+    if (!r.ok) return A.err(msg, body.error || 'Failed to save decision');
+    A.ok(msg, 'Application ' + decision + '. Email sent.');
+    setTimeout(load, 1000);
+  }
+
+  window.closeModal = function() {
+    document.getElementById('modal-decision').classList.remove('on');
+    document.getElementById('modal-invite').classList.remove('on');
+  };
+
+  document.querySelectorAll('.nav-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var view = this.getAttribute('data-view');
+      document.querySelectorAll('.nav-link').forEach(function(l) { l.classList.remove('on'); });
+      this.classList.add('on');
+      document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('on'); });
+      document.getElementById('view-' + view).classList.add('on');
+      STATE.currentView = view;
+    });
+  });
+
+  document.getElementById('signout').addEventListener('click', function(e) {
+    e.preventDefault();
+    A.signOut();
+  });
+
+  document.getElementById('btn-invite').addEventListener('click', function() {
+    document.getElementById('modal-invite').classList.add('on');
+  });
+
+  auth();
+})();
+</script>
+</body>
+</html>
