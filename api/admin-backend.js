@@ -19,7 +19,7 @@
  * 3. Deploy and set BASE_URL in config.js to this server's /api/admin/ path
  */
 
-import Resend from 'resend';
+import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
