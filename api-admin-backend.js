@@ -1,5 +1,5 @@
 /**
- * Snapcash Phase 3 — Admin Backend API
+ * Snapcash Phase 3 â€” Admin Backend API
  * 
  * This runs on a Node.js serverless platform (Vercel, Netlify, or your own server).
  * It handles:
@@ -31,6 +31,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* Approve or decline an application */
 export default async function handler(req, res) {
+  /* CORS: the admin panel lives on a different domain (snapcash.sequenceindustries.xyz)
+     than this backend (*.vercel.app). Without these headers, browsers silently block
+     the request before it reaches this code at all â€” the button just does nothing. */
+  res.setHeader('Access-Control-Allow-Origin', 'https://snapcash.sequenceindustries.xyz');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { app_id, decision, notes } = req.body;
@@ -100,7 +108,7 @@ export default async function handler(req, res) {
     const fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
 
     if (decision === 'approved') {
-      emailSubject = '✅ Your Snapcash application is approved';
+      emailSubject = 'âœ… Your Snapcash application is approved';
       emailHtml = `
         <h2>Good news, ${name}!</h2>
         <p>Your application for <strong>${fmt.format(app.requested_amount)}</strong> has been <strong>approved</strong>.</p>
