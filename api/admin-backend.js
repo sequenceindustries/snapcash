@@ -113,7 +113,7 @@ export default async function handler(req, res) {
         <h2>Good news, ${name}!</h2>
         <p>Your application for <strong>${fmt.format(app.requested_amount)}</strong> has been <strong>approved</strong>.</p>
         <p>Your total repayment amount is <strong>${fmt.format(app.total_repayable)}</strong>.</p>
-        <p><a href="https://snapcash.sequenceindustries.xyz/dashboard.html">Log in to your dashboard</a> to complete the next steps (bank verification, DebiCheck mandate).</p>
+        <p><a href="https://snapcash.money.html">Log in to your dashboard</a> to complete the next steps (bank verification, DebiCheck mandate).</p>
         <p>Questions? <a href="mailto:hello@snapcash.money">Get in touch</a>.</p>
       `;
     } else {
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
     }
 
     const { error: emailError } = await resend.emails.send({
-      from: 'Snapcash <applications@snapcash.sequenceindustries.xyz>',
+      from: 'Snapcash <applications@snapcash.money>',
       to: recipientEmail,
       subject: emailSubject,
       html: emailHtml
