@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   /* CORS: the admin panel lives on a different domain (snapcash.sequenceindustries.xyz)
      than this backend (*.vercel.app). Without these headers, browsers silently block
      the request before it reaches this code at all â€” the button just does nothing. */
-  res.setHeader('Access-Control-Allow-Origin', 'https://snapcash.sequenceindustries.xyz');
+  res.setHeader('Access-Control-Allow-Origin', 'https://snapcash.money');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
         <p>Your application for <strong>${fmt.format(app.requested_amount)}</strong> has been <strong>approved</strong>.</p>
         <p>Your total repayment amount is <strong>${fmt.format(app.total_repayable)}</strong>.</p>
         <p><a href="https://snapcash.sequenceindustries.xyz/dashboard.html">Log in to your dashboard</a> to complete the next steps (bank verification, DebiCheck mandate).</p>
-        <p>Questions? <a href="https://snapcash.sequenceindustries.xyz/contact.html">Get in touch</a>.</p>
+        <p>Questions? <a href="mailto:hello@snapcash.money">Get in touch</a>.</p>
       `;
     } else {
       emailSubject = 'Your Snapcash application';
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         <h2>Hi ${name},</h2>
         <p>We've reviewed your application for <strong>${fmt.format(app.requested_amount)}</strong>.</p>
         <p>Unfortunately, we weren't able to approve it at this time.${notes ? ' ' + notes : ''}</p>
-        <p>You're welcome to apply again in the future. If you'd like to discuss, <a href="https://snapcash.sequenceindustries.xyz/contact.html">reach out to us</a>.</p>
+        <p>You're welcome to apply again in the future. If you'd like to discuss, <a href="mailto:hello@snapcash.money">reach out to us</a>.</p>
       `;
     }
 
