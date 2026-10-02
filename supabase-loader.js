@@ -1,10 +1,18 @@
-/* Snapcash — resilient Supabase library loader. */
+/* Snapcash — resilient Supabase library loader.
+   Loads supabase-js from the first CDN that responds. This defends against a
+   single CDN being blocked by an ad-blocker or network filter (the cause of
+   the earlier "window.supabase is undefined" admin panel failure).
+
+   Usage: include this BEFORE config.js / auth.js. It exposes window.supabase
+   the same way a direct CDN script tag would. If every source fails, it sets
+   window.SUPABASE_LOAD_FAILED = true so pages can show a helpful message. */
 (function () {
   var SOURCES = [
     'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
     'https://esm.sh/@supabase/supabase-js@2?bundle'
   ];
+
   function loadSync(idx) {
     if (window.supabase && window.supabase.createClient) return;
     if (idx >= SOURCES.length) { window.SUPABASE_LOAD_FAILED = true; return; }
@@ -21,5 +29,6 @@
     } catch (e) {}
     loadSync(idx + 1);
   }
+
   loadSync(0);
 })();

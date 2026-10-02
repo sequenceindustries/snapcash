@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Login — Snapcash</title>
+<title>Login — snapcash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
+<link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body>
 
 <div class="nav">
   <div class="wrap nav-inner">
-    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+    <a class="logo" href="index.html"><img src="assets/logo.png" alt="snapcash" class="logo-img"></a>
     <nav class="nav-links">
       <a href="login.html" class="active">Login</a>
       <a class="btn btn-blue" href="apply.html">Apply</a>
@@ -22,24 +23,46 @@
 </div>
 
 <main class="app-main">
-  <p class="kicker">Welcome back</p>
   <h1 style="font-size: clamp(28px,4vw,42px); margin-bottom: 6px;">Log in.</h1>
-  <p class="sub" style="margin-bottom: 26px;">Track your application, see your loan, manage your account.</p>
+  <p class="sub" style="margin-bottom: 26px;">Track your application, see your loan, manage your account. A WhatsApp code is required on every login.</p>
 
   <div class="alert" id="msg"></div>
 
-  <div class="form-card" style="max-width:none;">
+  <div class="form-card" style="max-width:none;" id="pane-password">
     <div class="form-group">
       <label for="l-email">Email</label>
       <input id="l-email" type="email" autocomplete="email" placeholder="you@example.com" />
     </div>
     <div class="form-group">
       <label for="l-pass">Password</label>
-      <input id="l-pass" type="password" autocomplete="current-password" placeholder="Your password" />
+      <div style="position:relative;">
+        <input id="l-pass" type="password" autocomplete="current-password" placeholder="Your password" style="padding-right:52px;" />
+        <button type="button" id="l-pass-toggle" aria-label="Show password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); font-size:12px; font-weight:600; cursor:pointer; padding:4px 6px;">Show</button>
+      </div>
     </div>
     <button class="btn btn-blue" style="width:100%;" id="btn-login">Log in</button>
     <p class="linkline"><a href="#" id="forgot">Forgot your password?</a></p>
-    <p class="linkline" style="margin-top:8px;">New to Snapcash? <a href="apply.html">Apply — it creates your account</a></p>
+
+    <div style="display:flex; align-items:center; gap:12px; margin:22px 0;">
+      <div style="flex:1; height:1px; background:var(--line-strong);"></div>
+      <span style="font-size:12px; color:var(--muted);">or</span>
+      <div style="flex:1; height:1px; background:var(--line-strong);"></div>
+    </div>
+
+    <button class="btn btn-ghost" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-google">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.55-1.84.87-3.06.87-2.36 0-4.36-1.6-5.07-3.75H.9v2.33A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.93 10.68A5.4 5.4 0 0 1 3.64 9c0-.58.1-1.15.29-1.68V4.99H.9A9 9 0 0 0 0 9c0 1.45.35 2.83.9 4.01l3.03-2.33Z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .9 4.99l3.03 2.33C4.64 5.17 6.64 3.58 9 3.58Z"/></svg>
+      Continue with Google
+    </button>
+
+    <p class="linkline" style="margin-top:16px;">New to snapcash? <a href="apply.html">Apply</a></p>
+  </div>
+
+  <!-- Shown instead of the form when a signed-in session's email still needs confirming -->
+  <div class="form-card" style="max-width:none; display:none;" id="pane-unconfirmed">
+    <h3 style="margin-bottom:10px;">Confirm your email</h3>
+    <p style="font-size:14px; margin-bottom:18px;">We've sent a confirmation link to your inbox. Click it, then come back and refresh this page.</p>
+    <button class="btn btn-ghost" style="width:100%;" id="btn-resend-confirm">Resend confirmation email</button>
+    <p class="linkline"><a href="#" data-signout>Log out and use a different account</a></p>
   </div>
 </main>
 
@@ -52,8 +75,34 @@
   if (A.showConfigWarning(msg)) return;
   var db = A.client;
 
-  /* already logged in? straight to dashboard */
-  A.session().then(function (s) { if (s) location.href = 'dashboard.html'; });
+  /* Routes a freshly-authenticated (or already-signed-in) session through
+     the full mandatory sequence: confirmed email -> verified phone ->
+     this-login's WhatsApp challenge -> only then the actual app. */
+  async function goNext() {
+    var st = await A.getAuthState();
+    if (st.state === 'signed_out') return; /* nothing to do, show the form */
+
+    if (st.state === 'awaiting_email_confirmation') {
+      document.getElementById('pane-password').style.display = 'none';
+      document.getElementById('pane-unconfirmed').style.display = '';
+      return;
+    }
+    if (st.state === 'requires_phone_enrolment') { location.href = 'verify-phone.html'; return; }
+    if (st.state === 'requires_login_whatsapp_otp') { location.href = 'verify-login.html'; return; }
+
+    /* fully_verified: new users (no profile yet) finish at apply.html;
+       returning users go straight to their dashboard. */
+    var has = await A.hasProfile(st.session.user.id);
+    location.href = has ? 'dashboard.html' : 'apply.html';
+  }
+  goNext();
+
+  document.getElementById('l-pass-toggle').addEventListener('click', function () {
+    var input = document.getElementById('l-pass');
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    this.textContent = showing ? 'Show' : 'Hide';
+  });
 
   async function doLogin() {
     var email = document.getElementById('l-email').value.trim();
@@ -64,11 +113,12 @@
     var r = await db.auth.signInWithPassword({ email: email, password: pass });
     btn.disabled = false; btn.classList.remove('btn-loading');
     if (r.error) {
-      if (/not confirmed/i.test(r.error.message))
-        return A.err(msg, 'Your email isn\u2019t verified yet — check your inbox for the confirmation link.');
-      return A.err(msg, 'Login failed: ' + r.error.message);
+      /* Deliberately generic — never confirms whether an email exists,
+         and unconfirmed-email is handled by goNext() after a successful
+         sign-in, not surfaced here as a distinct error. */
+      return A.err(msg, 'Incorrect email or password.');
     }
-    location.href = 'dashboard.html';
+    goNext();
   }
   document.getElementById('btn-login').addEventListener('click', doLogin);
   document.getElementById('l-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
@@ -78,8 +128,39 @@
     var email = document.getElementById('l-email').value.trim();
     if (!email) return A.err(msg, 'Type your email above first, then click "Forgot your password?" again.');
     var r = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/reset.html' });
-    r.error ? A.err(msg, r.error.message)
-            : A.ok(msg, 'Password reset email sent to ' + email + ' — check your inbox.');
+    /* Generic regardless of outcome — never confirms whether the email exists. */
+    A.ok(msg, 'If an account exists for ' + email + ', a reset link has been sent.');
+  });
+
+  document.getElementById('btn-resend-confirm').addEventListener('click', async function () {
+    var s = await A.session();
+    if (!s) return;
+    var btn = this;
+    btn.disabled = true; btn.classList.add('btn-loading');
+    var r = await db.auth.resend({ type: 'signup', email: s.user.email });
+    btn.disabled = false; btn.classList.remove('btn-loading');
+    r.error ? A.err(msg, 'Could not resend right now — please try again shortly.')
+            : A.ok(msg, 'Sent — check your inbox (and spam folder).');
+  });
+
+  /* ---------- Google ----------
+     redirectTo MUST be an absolute URL on this site's own origin — see
+     auth-callback.html, which exchanges the code and then also runs
+     through goNext()'s equivalent logic (getAuthState -> the right step).
+     No extra scopes requested; we only need identity, not Google API
+     access, so no Google access/refresh token is stored anywhere. */
+  document.getElementById('btn-google').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true;
+    var r = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: location.origin + '/auth-callback.html' }
+    });
+    if (r.error) {
+      btn.disabled = false;
+      A.err(msg, 'Could not start Google sign-in. Please try again.');
+    }
+    /* on success the browser is already navigating to Google — nothing more to do here */
   });
 })();
 </script>

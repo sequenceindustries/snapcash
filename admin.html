@@ -3,21 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin — Snapcash</title>
+<title>Admin — snapcash</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
+<link rel="icon" type="image/png" href="assets/favicon.png" />
 <style>
 .admin-nav { background: var(--tint); padding: 12px 0; border-bottom: 1px solid var(--line); }
 .admin-nav .wrap { display: flex; justify-content: space-between; align-items: center; }
 .admin-nav .logo { font-size: 18px; font-weight: 700; }
-.admin-content { display: grid; grid-template-columns: 220px 1fr; gap: 28px; padding: 40px 0; min-height: calc(100vh - 140px); }
+.admin-content { display: grid; grid-template-columns: 220px 1fr; gap: 36px; padding: 40px 0; min-height: calc(100vh - 140px); }
 .admin-nav a { color: var(--ink); }
 .admin-sidebar { padding-right: 28px; border-right: 1px solid var(--line); }
-.admin-sidebar h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 14px; margin-top: 24px; }
+.admin-sidebar h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 16px; margin-top: 30px; }
 .admin-sidebar h3:first-child { margin-top: 0; }
-.admin-sidebar a { display: block; padding: 8px 0; font-size: 14px; color: var(--body); text-decoration: none; }
+.admin-sidebar a { display: block; padding: 10px 0; font-size: 14px; color: var(--body); text-decoration: none; }
 .admin-sidebar a.on { color: var(--accent); font-weight: 600; }
 .admin-sidebar a:hover { color: var(--accent); }
+main h1 { margin-bottom: 10px; }
+
+.admin-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 32px; }
+.summary-date { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin-bottom: -2px; }
+.summary-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+.summary-card:hover { border-color: var(--tint-line); transform: translateY(-2px); }
+.summary-card .num { font-size: 26px; font-weight: 800; color: var(--ink); font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
+.summary-card .lbl { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.summary-card.alert-card { border-color: rgba(255,120,100,.4); background: rgba(255,120,100,.06); }
+.summary-card.alert-card .num { color: #c0392b; }
 
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -33,14 +44,32 @@ table a:hover { text-decoration: underline; }
 .status-approved { background: rgba(121,255,178,.15); color: #1e8f5a; }
 .status-declined { background: rgba(255,120,100,.15); color: #c0392b; }
 .status-pending_kyc { background: rgba(121,191,255,.15); color: var(--accent); }
+.status-disbursed { background: rgba(121,191,255,.15); color: var(--accent-deep); }
+.status-settled { background: rgba(148,163,184,.18); color: #475569; }
+.status-arrears { background: rgba(255,120,100,.18); color: #c0392b; }
 
 .actions { display: flex; gap: 6px; }
 .actions button { padding: 6px 12px; font-size: 12px; border: 1px solid var(--line); background: transparent; color: var(--body); border-radius: 6px; cursor: pointer; }
 .actions button:hover { background: var(--tint); }
+.actions .docs { color: var(--accent-deep); border-color: var(--tint-line); }
+.actions .docs:hover { background: var(--tint); }
+.actions .view { color: var(--ink); border-color: var(--line-strong); }
+.actions .view:hover { background: var(--tint); }
 .actions .approve { color: #1e8f5a; border-color: rgba(121,255,178,.3); }
 .actions .approve:hover { background: rgba(121,255,178,.1); }
 .actions .decline { color: #c0392b; border-color: rgba(255,120,100,.3); }
 .actions .decline:hover { background: rgba(255,120,100,.1); }
+.actions .disburse { color: var(--accent-deep); border-color: var(--tint-line); }
+.actions .disburse:hover { background: var(--tint); }
+.actions .settle { color: #475569; border-color: rgba(148,163,184,.4); }
+.actions .settle:hover { background: rgba(148,163,184,.12); }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; font-size: 14px; }
+.detail-grid .full { grid-column: 1 / -1; }
+.detail-grid dt { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 3px; }
+.detail-grid dd { margin: 0; color: var(--ink); font-weight: 500; }
+.detail-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 10px; border-top: 1px solid var(--line); padding-top: 18px; }
+.detail-section-title:first-child { border-top: none; padding-top: 0; margin-top: 0; }
 
 .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); z-index: 1000; align-items: center; justify-content: center; }
 .modal.on { display: flex; }
@@ -63,7 +92,7 @@ table a:hover { text-decoration: underline; }
 
 <div class="admin-nav">
   <div class="wrap nav-inner">
-    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash admin</a>
+    <a class="logo" href="index.html"><img src="assets/logo.png" alt="snapcash" class="logo-img"><span style="margin-left:8px;color:var(--muted);font-weight:600;font-size:0.85em;">admin</span></a>
     <div style="display:flex; gap:16px; align-items:center;">
       <span id="user-email" style="font-size:13px;"></span>
       <a href="#" id="signout" style="font-size:13px; color:var(--body);">Log out</a>
@@ -77,6 +106,11 @@ table a:hover { text-decoration: underline; }
     <a href="#" class="nav-link on" data-view="queue">Application queue</a>
     <a href="#" class="nav-link" data-view="approved">Approved</a>
     <a href="#" class="nav-link" data-view="declined">Declined</a>
+    <h3>Loan book</h3>
+    <a href="#" class="nav-link" data-view="awaiting-payout">Awaiting payout</a>
+    <a href="#" class="nav-link" data-view="active">Active loans</a>
+    <a href="#" class="nav-link" data-view="arrears">Arrears</a>
+    <a href="#" class="nav-link" data-view="settled">Settled</a>
     <h3>Operations</h3>
     <a href="#" class="nav-link" data-view="emails">Email logs</a>
     <a href="#" class="nav-link" data-view="admins">Manage admins</a>
@@ -84,6 +118,17 @@ table a:hover { text-decoration: underline; }
 
   <main>
     <div id="msg" class="alert" style="margin-bottom:20px;"></div>
+
+    <div class="admin-summary" id="admin-summary">
+      <div class="summary-date" id="summary-date"></div>
+      <div class="summary-card" data-jump="queue"><div class="num" id="sum-queue">—</div><div class="lbl">New applications</div></div>
+      <div class="summary-card" data-jump="approved"><div class="num" id="sum-approved">—</div><div class="lbl">Approved, awaiting DebiCheck</div></div>
+      <div class="summary-card" data-jump="awaiting-payout"><div class="num" id="sum-awaiting">—</div><div class="lbl">Awaiting payout</div></div>
+      <div class="summary-card" data-jump="active"><div class="num" id="sum-active">—</div><div class="lbl">Active loans</div></div>
+      <div class="summary-card alert-card" data-jump="arrears"><div class="num" id="sum-arrears">—</div><div class="lbl">In arrears</div></div>
+      <div class="summary-card" data-jump="declined"><div class="num" id="sum-declined">—</div><div class="lbl">Declined</div></div>
+      <div class="summary-card" data-jump="settled"><div class="num" id="sum-settled">—</div><div class="lbl">Settled</div></div>
+    </div>
 
     <!-- QUEUE view -->
     <div id="view-queue" class="view on">
@@ -113,7 +158,7 @@ table a:hover { text-decoration: underline; }
 
     <!-- APPROVED view -->
     <div id="view-approved" class="view">
-      <h1 style="font-size:28px; margin-top:0;">Approved</h1>
+      <h1 style="font-size:28px; margin-top:0;">Approved — awaiting disbursement</h1>
       <div class="table-wrap">
         <table>
           <thead>
@@ -121,13 +166,32 @@ table a:hover { text-decoration: underline; }
               <th>Applicant</th>
               <th>Amount</th>
               <th>Approved on</th>
-              <th>Reviewed by</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="approved-rows"></tbody>
         </table>
       </div>
-      <div class="empty" id="approved-empty"><p>No approved applications.</p></div>
+      <div class="empty" id="approved-empty"><p>No approved applications awaiting disbursement.</p></div>
+    </div>
+
+    <!-- AWAITING PAYOUT view -->
+    <div id="view-awaiting-payout" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Awaiting payout</h1>
+      <p style="color:var(--muted); font-size:14px; margin-top:-8px; margin-bottom:24px;">DebiCheck authorised — ready to disburse.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Amount</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="awaiting-payout-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="awaiting-payout-empty"><p>No applications awaiting payout.</p></div>
     </div>
 
     <!-- DECLINED view -->
@@ -147,6 +211,65 @@ table a:hover { text-decoration: underline; }
         </table>
       </div>
       <div class="empty" id="declined-empty"><p>No declined applications.</p></div>
+    </div>
+
+    <!-- ACTIVE LOANS view -->
+    <div id="view-active" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Active loans</h1>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Disbursed</th>
+              <th>Due date</th>
+              <th>Total repayable</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="active-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="active-empty"><p>No active loans.</p></div>
+    </div>
+
+    <!-- ARREARS view -->
+    <div id="view-arrears" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Arrears</h1>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Due date</th>
+              <th>Days overdue</th>
+              <th>Total repayable</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="arrears-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="arrears-empty"><p>No loans in arrears.</p></div>
+    </div>
+
+    <!-- SETTLED view -->
+    <div id="view-settled" class="view">
+      <h1 style="font-size:28px; margin-top:0;">Settled</h1>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Amount collected</th>
+              <th>Settled on</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody id="settled-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="settled-empty"><p>No settled loans yet.</p></div>
     </div>
 
     <!-- EMAIL LOGS view -->
@@ -196,7 +319,7 @@ table a:hover { text-decoration: underline; }
 <div class="modal" id="modal-decision">
   <div class="modal-box">
     <h2 id="modal-title">Approve application?</h2>
-    <p id="modal-details"></p>
+    <p id="modal-decision-summary"></p>
     <div class="form-group">
       <label for="modal-notes">Notes (optional)</label>
       <textarea id="modal-notes" style="width:100%; min-height:80px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-family:Inter; font-size:13px;"></textarea>
@@ -230,6 +353,68 @@ table a:hover { text-decoration: underline; }
   </div>
 </div>
 
+<!-- Modal: view documents -->
+<div class="modal" id="modal-docs">
+  <div class="modal-box">
+    <h2 id="docs-title">Documents</h2>
+    <div id="docs-list" style="margin: 14px 0; font-size: 14px;"></div>
+    <div class="actions">
+      <button onclick="closeModal()" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: full applicant details -->
+<div class="modal" id="modal-details">
+  <div class="modal-box" style="max-width: 640px;">
+    <h2 id="details-title">Applicant details</h2>
+    <div id="details-body" style="margin: 16px 0;"></div>
+    <div class="actions">
+      <button onclick="closeModal()" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: mark disbursed -->
+<div class="modal" id="modal-disburse">
+  <div class="modal-box">
+    <h2>Mark as disbursed</h2>
+    <p id="disburse-details" style="color:var(--muted); font-size:14px;"></p>
+    <div class="form-group">
+      <label for="disburse-amount">Amount disbursed (R)</label>
+      <input id="disburse-amount" type="number" step="0.01" />
+    </div>
+    <div class="form-group">
+      <label for="disburse-reference">Reference (EFT ref, Altron ref, etc.)</label>
+      <input id="disburse-reference" type="text" placeholder="e.g. bank reference number" />
+    </div>
+    <div class="actions">
+      <button onclick="closeModal()" class="btn">Cancel</button>
+      <button id="btn-confirm-disburse" class="btn btn-blue">Confirm disbursement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: mark settled -->
+<div class="modal" id="modal-settle">
+  <div class="modal-box">
+    <h2>Mark as settled</h2>
+    <p id="settle-details" style="color:var(--muted); font-size:14px;"></p>
+    <div class="form-group">
+      <label for="settle-amount">Amount collected (R)</label>
+      <input id="settle-amount" type="number" step="0.01" />
+    </div>
+    <div class="form-group">
+      <label for="settle-reference">Reference (collection ref, Altron ref, etc.)</label>
+      <input id="settle-reference" type="text" placeholder="e.g. debit order reference" />
+    </div>
+    <div class="actions">
+      <button onclick="closeModal()" class="btn">Cancel</button>
+      <button id="btn-confirm-settle" class="btn btn-blue">Confirm settlement</button>
+    </div>
+  </div>
+</div>
+
 <script src="supabase-loader.js"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
@@ -239,28 +424,109 @@ table a:hover { text-decoration: underline; }
   if (A.showConfigWarning(msg)) return;
   var db = A.client;
 
+  /* Navigation is wired FIRST, before any data-loading logic below, so a
+     problem in a render/query function can never prevent the sidebar
+     (or the summary cards) from switching views. */
+  function switchView(view) {
+    document.querySelectorAll('.nav-link').forEach(function (l) { l.classList.toggle('on', l.getAttribute('data-view') === view); });
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('on'); });
+    var el = document.getElementById('view-' + view);
+    if (el) el.classList.add('on');
+    STATE.currentView = view;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.nav-link').forEach(function (link) {
+    link.addEventListener('click', function (e) { e.preventDefault(); switchView(this.getAttribute('data-view')); });
+  });
+  document.querySelectorAll('.summary-card').forEach(function (card) {
+    card.addEventListener('click', function () { switchView(this.getAttribute('data-jump')); });
+  });
+  document.getElementById('signout').addEventListener('click', function (e) {
+    e.preventDefault(); A.signOut();
+  });
+
   var fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
   var DATE = function (d) { return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }); };
-  var STATE = { sortCol: 'created_at', sortDir: 'desc', currentView: 'queue', apps: [], emails: [], admins: [] };
+  var STATE = { sortCol: 'created_at', sortDir: 'desc', currentView: 'queue',
+    apps: [], approvedApps: [], awaitingPayoutApps: [], activeApps: [], arrearsApps: [], declinedApps: [], settledApps: [],
+    emails: [], admins: [] };
+
+  document.getElementById('summary-date').textContent = new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   async function auth() {
     var s = await A.requireAuth('login.html'); if (!s) return;
     document.getElementById('user-email').textContent = s.user.email;
 
-    /* Check if admin */
-    var admin = (await db.from('admin_users').select('id').eq('email', s.user.email).eq('status', 'active').maybeSingle()).data;
-    if (!admin) { A.err(msg, 'Access denied: not an admin.'); location.href = 'index.html'; return; }
+    /* Check admin status via the non-recursive is_active_admin() function.
+       Unlike a raw table select, this can't be silently defeated by an RLS
+       hiccup — and if it errors, we SHOW the error rather than bouncing
+       the person out with no explanation. */
+    var isAdmin = false, checkErr = null;
+    try {
+      var r = await db.rpc('is_active_admin');
+      if (r.error) checkErr = r.error; else isAdmin = !!r.data;
+    } catch (e) { checkErr = e; }
+
+    if (checkErr) {
+      A.err(msg, 'Could not verify admin access (' + (checkErr.message || checkErr) + '). Check your connection and reload — you have not been signed out.');
+      return;
+    }
+    if (!isAdmin) {
+      A.err(msg, 'This account is not registered as an admin. Redirecting…');
+      setTimeout(function () { location.href = 'index.html'; }, 2200);
+      return;
+    }
 
     load();
   }
 
   async function load() {
+    var profFields = 'first_name, last_name';
+
     /* Queue: under_review applications */
     var qr = await db.from('loan_applications')
-      .select('id, user_id, requested_amount, term_days, total_repayable, status, created_at, profiles(first_name, last_name)')
+      .select('id, user_id, requested_amount, term_days, total_repayable, status, created_at, profiles(' + profFields + ')')
       .eq('status', 'under_review')
       .order('created_at', { ascending: false });
     STATE.apps = qr.data || [];
+
+    /* Approved, awaiting DebiCheck authorisation */
+    var apr = await db.from('loan_applications')
+      .select('id, user_id, requested_amount, total_repayable, status, reviewed_at, profiles(' + profFields + ')')
+      .eq('status', 'approved')
+      .order('reviewed_at', { ascending: false });
+    STATE.approvedApps = apr.data || [];
+
+    /* DebiCheck authorised, awaiting disbursement */
+    var awp = await db.from('loan_applications')
+      .select('id, user_id, requested_amount, total_repayable, status, profiles(' + profFields + ')')
+      .eq('status', 'debicheck_authorized')
+      .order('created_at', { ascending: false });
+    STATE.awaitingPayoutApps = awp.data || [];
+
+    /* Disbursed — split client-side into active vs arrears by due date */
+    var dis = await db.from('loan_applications')
+      .select('id, user_id, requested_amount, total_repayable, due_date, disbursed_at, disbursed_amount, status, profiles(' + profFields + ')')
+      .eq('status', 'disbursed')
+      .order('due_date', { ascending: true });
+    var disbursedRows = dis.data || [];
+    var now = new Date();
+    STATE.activeApps = disbursedRows.filter(function (a) { return new Date(a.due_date) >= now; });
+    STATE.arrearsApps = disbursedRows.filter(function (a) { return new Date(a.due_date) < now; });
+
+    /* Declined */
+    var dec = await db.from('loan_applications')
+      .select('id, requested_amount, reviewed_at, decision_reason, profiles(' + profFields + ')')
+      .eq('status', 'declined')
+      .order('reviewed_at', { ascending: false });
+    STATE.declinedApps = dec.data || [];
+
+    /* Settled */
+    var set = await db.from('loan_applications')
+      .select('id, amount_collected, settled_at, collection_reference, profiles(' + profFields + ')')
+      .eq('status', 'settled')
+      .order('settled_at', { ascending: false });
+    STATE.settledApps = set.data || [];
 
     /* Emails: recent logs */
     var er = await db.from('email_logs').select('*').order('created_at', { ascending: false }).limit(50);
@@ -273,12 +539,31 @@ table a:hover { text-decoration: underline; }
     render();
   }
 
+  function renderSummary() {
+    document.getElementById('sum-queue').textContent = STATE.apps.length;
+    document.getElementById('sum-approved').textContent = STATE.approvedApps.length;
+    document.getElementById('sum-awaiting').textContent = STATE.awaitingPayoutApps.length;
+    document.getElementById('sum-active').textContent = STATE.activeApps.length;
+    document.getElementById('sum-arrears').textContent = STATE.arrearsApps.length;
+    document.getElementById('sum-declined').textContent = STATE.declinedApps.length;
+    document.getElementById('sum-settled').textContent = STATE.settledApps.length;
+  }
+
   function render() {
     renderQueue();
     renderApproved();
+    renderAwaitingPayout();
+    renderActive();
+    renderArrears();
     renderDeclined();
+    renderSettled();
     renderEmails();
     renderAdmins();
+    renderSummary();
+  }
+
+  function nameOf(app) {
+    return app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '\u2014';
   }
 
   function renderQueue() {
@@ -291,6 +576,8 @@ table a:hover { text-decoration: underline; }
         '<td>' + app.term_days + 'd</td>' +
         '<td><span class="status-badge status-' + app.status + '">' + (app.status === 'under_review' ? 'Under review' : app.status) + '</span></td>' +
         '<td><div class="actions">' +
+          '<button class="view" onclick="viewDetails(\'' + app.id + '\')">View</button>' +
+          '<button class="docs" onclick="viewDocs(\'' + app.user_id + '\', \'' + name.replace(/'/g, "\\'") + '\')">Documents</button>' +
           '<button class="approve" onclick="decide(\'' + app.id + '\', \'approved\')">Approve</button>' +
           '<button class="decline" onclick="decide(\'' + app.id + '\', \'declined\')">Decline</button>' +
         '</div></td>' +
@@ -302,20 +589,96 @@ table a:hover { text-decoration: underline; }
   }
 
   function renderApproved() {
-    var rows = (function() {
-      var all = [];
-      for (var i = 0; i < 100; i++) {
-        var r = db.from('loan_applications').select('*').eq('status','approved').order('reviewed_at',{ascending:false}).limit(20);
-      }
-      return ''; // stub for now
-    })();
+    var rows = STATE.approvedApps.map(function (app) {
+      return '<tr>' +
+        '<td><strong>' + nameOf(app) + '</strong></td>' +
+        '<td>' + fmt.format(app.requested_amount) + '</td>' +
+        '<td>' + (app.reviewed_at ? DATE(app.reviewed_at) : '\u2014') + '</td>' +
+        '<td><div class="actions">' +
+          '<button class="view" onclick="viewDetails(\'' + app.id + '\')">View</button>' +
+          '<button class="disburse" onclick="markDebicheck(\'' + app.id + '\')">Mark DebiCheck authorised</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
     document.getElementById('approved-rows').innerHTML = rows;
     document.getElementById('approved-empty').style.display = rows ? 'none' : 'block';
   }
 
+  function renderAwaitingPayout() {
+    var rows = STATE.awaitingPayoutApps.map(function (app) {
+      return '<tr>' +
+        '<td><strong>' + nameOf(app) + '</strong></td>' +
+        '<td>' + fmt.format(app.requested_amount) + '</td>' +
+        '<td><div class="actions">' +
+          '<button class="view" onclick="viewDetails(\'' + app.id + '\')">View</button>' +
+          '<button class="disburse" onclick="markDisbursed(\'' + app.id + '\')">Mark disbursed</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('awaiting-payout-rows').innerHTML = rows;
+    document.getElementById('awaiting-payout-empty').style.display = rows ? 'none' : 'block';
+  }
+
+  function renderActive() {
+    var rows = STATE.activeApps.map(function (app) {
+      return '<tr>' +
+        '<td><strong>' + nameOf(app) + '</strong></td>' +
+        '<td>' + (app.disbursed_at ? DATE(app.disbursed_at) : '\u2014') + '</td>' +
+        '<td>' + (app.due_date ? DATE(app.due_date) : '\u2014') + '</td>' +
+        '<td>' + fmt.format(app.total_repayable) + '</td>' +
+        '<td><div class="actions">' +
+          '<button class="view" onclick="viewDetails(\'' + app.id + '\')">View</button>' +
+          '<button class="settle" onclick="markSettled(\'' + app.id + '\')">Mark settled</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('active-rows').innerHTML = rows;
+    document.getElementById('active-empty').style.display = rows ? 'none' : 'block';
+  }
+
+  function renderArrears() {
+    var now = new Date();
+    var rows = STATE.arrearsApps.map(function (app) {
+      var daysOverdue = Math.floor((now - new Date(app.due_date)) / 86400000);
+      return '<tr>' +
+        '<td><strong>' + nameOf(app) + '</strong></td>' +
+        '<td>' + DATE(app.due_date) + '</td>' +
+        '<td><span class="status-badge status-arrears">' + daysOverdue + ' days</span></td>' +
+        '<td>' + fmt.format(app.total_repayable) + '</td>' +
+        '<td><div class="actions">' +
+          '<button class="view" onclick="viewDetails(\'' + app.id + '\')">View</button>' +
+          '<button class="settle" onclick="markSettled(\'' + app.id + '\')">Mark settled</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('arrears-rows').innerHTML = rows;
+    document.getElementById('arrears-empty').style.display = rows ? 'none' : 'block';
+  }
+
   function renderDeclined() {
-    document.getElementById('declined-rows').innerHTML = '';
-    document.getElementById('declined-empty').style.display = 'block';
+    var rows = STATE.declinedApps.map(function (app) {
+      return '<tr>' +
+        '<td><strong>' + nameOf(app) + '</strong></td>' +
+        '<td>' + fmt.format(app.requested_amount) + '</td>' +
+        '<td>' + (app.reviewed_at ? DATE(app.reviewed_at) : '\u2014') + '</td>' +
+        '<td>' + (app.decision_reason || '\u2014') + '</td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('declined-rows').innerHTML = rows;
+    document.getElementById('declined-empty').style.display = rows ? 'none' : 'block';
+  }
+
+  function renderSettled() {
+    var rows = STATE.settledApps.map(function (app) {
+      return '<tr>' +
+        '<td><strong>' + nameOf(app) + '</strong></td>' +
+        '<td>' + fmt.format(app.amount_collected) + '</td>' +
+        '<td>' + (app.settled_at ? DATE(app.settled_at) : '\u2014') + '</td>' +
+        '<td>' + (app.collection_reference || '\u2014') + '</td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('settled-rows').innerHTML = rows;
+    document.getElementById('settled-empty').style.display = rows ? 'none' : 'block';
   }
 
   function renderEmails() {
@@ -348,7 +711,7 @@ table a:hover { text-decoration: underline; }
     var app = STATE.apps.find(function(a) { return a.id === appId; });
     document.getElementById('modal-title').textContent = decision === 'approved' ? 'Approve application?' : 'Decline application?';
     var name = app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '—';
-    document.getElementById('modal-details').textContent = name + ' — ' + fmt.format(app.requested_amount);
+    document.getElementById('modal-decision-summary').textContent = name + ' — ' + fmt.format(app.requested_amount);
     document.getElementById('modal-notes').value = '';
     document.getElementById('modal-confirm').onclick = function() { submitDecision(appId, decision); };
     document.getElementById('modal-decision').classList.add('on');
@@ -358,44 +721,174 @@ table a:hover { text-decoration: underline; }
     var notes = document.getElementById('modal-notes').value;
     closeModal();
     var s = await A.session();
+    if (!s) { A.err(msg, 'Your session expired — please log in again.'); return; }
     var btn = document.getElementById('modal-confirm');
     btn.disabled = true;
 
-    /* Call backend endpoint to approve/decline */
-    var r = await fetch('https://snapcash-gyxrfi0u-sequenceindustries.vercel.app/api/admin-backend', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.session.access_token },
-      body: JSON.stringify({ app_id: appId, decision: decision, notes: notes })
-    });
+    try {
+      /* Call backend endpoint to approve/decline */
+      var r = await fetch('https://snapcash-eight.vercel.app/api/admin-backend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.access_token },
+        body: JSON.stringify({ app_id: appId, decision: decision, notes: notes })
+      });
 
-    btn.disabled = false;
-    var body = await r.json();
-    if (!r.ok) return A.err(msg, body.error || 'Failed to save decision');
-    A.ok(msg, 'Application ' + decision + '. Email sent.');
-    setTimeout(load, 1000);
+      var body = {};
+      try { body = await r.json(); } catch (parseErr) { body = {}; }
+
+      if (!r.ok) return A.err(msg, body.error || ('Failed to save decision (status ' + r.status + ').'));
+      if (body.email_error) {
+        A.err(msg, 'Application ' + decision + ', but the email failed to send: ' + body.email_error + ' (the decision itself was saved).');
+      } else {
+        A.ok(msg, 'Application ' + decision + '. Email sent.');
+      }
+      setTimeout(load, 1000);
+    } catch (networkErr) {
+      A.err(msg, 'Could not reach the admin backend: ' + networkErr.message + '. Check your connection and try again.');
+    } finally {
+      btn.disabled = false;
+    }
   }
+
+  window.viewDocs = async function(userId, name) {
+    document.getElementById('docs-title').textContent = 'Documents \u2014 ' + name;
+    var listEl = document.getElementById('docs-list');
+    listEl.textContent = 'Loading\u2026';
+    document.getElementById('modal-docs').classList.add('on');
+
+    var r = await db.storage.from('applicant-documents').list(userId);
+    if (r.error) { listEl.textContent = 'Could not load documents: ' + r.error.message; return; }
+    if (!r.data || !r.data.length) { listEl.textContent = 'No documents uploaded yet.'; return; }
+
+    var links = [];
+    for (var i = 0; i < r.data.length; i++) {
+      var path = userId + '/' + r.data[i].name;
+      var s = await db.storage.from('applicant-documents').createSignedUrl(path, 300);
+      if (s.data && s.data.signedUrl) {
+        links.push('<a href="' + s.data.signedUrl + '" target="_blank" rel="noopener" style="display:block; margin-bottom:8px;">' + r.data[i].name + '</a>');
+      }
+    }
+    listEl.innerHTML = links.length ? links.join('') : 'No documents uploaded yet.';
+  };
+
+  window.viewDetails = async function(appId) {
+    document.getElementById('details-title').textContent = 'Applicant details';
+    var body = document.getElementById('details-body');
+    body.innerHTML = 'Loading\u2026';
+    document.getElementById('modal-details').classList.add('on');
+
+    var r = await db.from('loan_applications')
+      .select('*, profiles(first_name,last_name,email,sa_id_number,phone_number,employment_status,employer,job_title,monthly_net_income,physical_address,popia_accepted,popia_accepted_at,documents_submitted_at)')
+      .eq('id', appId).maybeSingle();
+
+    if (r.error || !r.data) { body.innerHTML = 'Could not load details: ' + (r.error ? r.error.message : 'not found'); return; }
+
+    var a = r.data, p = a.profiles || {};
+    document.getElementById('details-title').textContent = (p.first_name || '') + ' ' + (p.last_name || '');
+
+    function row(label, value) {
+      return '<div><dt>' + label + '</dt><dd>' + (value === null || value === undefined || value === '' ? '\u2014' : value) + '</dd></div>';
+    }
+
+    var html = '';
+    html += '<div class="detail-section-title">Personal details</div>';
+    html += '<dl class="detail-grid">' +
+      row('Email', p.email) +
+      row('Phone', p.phone_number) +
+      row('SA ID number', p.sa_id_number) +
+      row('Employment status', p.employment_status) +
+      row('Employer', p.employer) +
+      row('Job title', p.job_title) +
+      row('Monthly net income', p.monthly_net_income != null ? fmt.format(p.monthly_net_income) : null) +
+      row('Physical address', p.physical_address) +
+      row('POPIA consent', p.popia_accepted ? 'Recorded ' + DATE(p.popia_accepted_at) : 'Not recorded') +
+      '</dl>';
+
+    html += '<div class="detail-section-title">Loan</div>';
+    html += '<dl class="detail-grid">' +
+      row('Requested amount', fmt.format(a.requested_amount)) +
+      row('Term', a.term_days + ' days') +
+      row('Initiation fee', a.initiation_fee != null ? fmt.format(a.initiation_fee) : null) +
+      row('Service fee', a.service_fee != null ? fmt.format(a.service_fee) : null) +
+      row('Interest', a.interest_amount != null ? fmt.format(a.interest_amount) : null) +
+      row('Total repayable', a.total_repayable != null ? fmt.format(a.total_repayable) : null) +
+      row('Due date', a.due_date ? DATE(a.due_date) : null) +
+      row('Status', a.status) +
+      '</dl>';
+
+    if (a.disbursed_at || a.settled_at) {
+      html += '<div class="detail-section-title">Ledger</div>';
+      html += '<dl class="detail-grid">' +
+        row('Disbursed on', a.disbursed_at ? DATE(a.disbursed_at) : null) +
+        row('Amount disbursed', a.disbursed_amount != null ? fmt.format(a.disbursed_amount) : null) +
+        row('Disbursement reference', a.disbursement_reference) +
+        row('Settled on', a.settled_at ? DATE(a.settled_at) : null) +
+        row('Amount collected', a.amount_collected != null ? fmt.format(a.amount_collected) : null) +
+        row('Collection reference', a.collection_reference) +
+        '</dl>';
+    }
+
+    html += '<div class="detail-section-title">Documents</div>' +
+      '<button class="btn btn-ghost" style="padding:8px 16px; font-size:13px;" onclick="closeModal(); viewDocs(\'' + a.user_id + '\', \'' + ((p.first_name || '') + ' ' + (p.last_name || '')).replace(/'/g, "\\'") + '\')">View uploaded documents</button>';
+
+    body.innerHTML = html;
+  };
+
+  window.markDebicheck = async function(appId) {
+    var app = STATE.approvedApps.find(function(a) { return a.id === appId; });
+    if (!confirm('Confirm that ' + (app ? nameOf(app) : 'this applicant') + '\u2019s DebiCheck debit order authority has been received?')) return;
+    var r = await db.rpc('mark_debicheck_authorized', { app_id: appId });
+    if (r.error) return A.err(msg, 'Could not mark as DebiCheck authorised: ' + r.error.message);
+    A.ok(msg, 'Marked as DebiCheck authorised.');
+    load();
+  };
+
+  window.markDisbursed = function(appId) {
+    var app = STATE.awaitingPayoutApps.find(function(a) { return a.id === appId; });
+    document.getElementById('disburse-details').textContent = (app ? nameOf(app) + ' \u2014 ' : '') + 'requested ' + (app ? fmt.format(app.requested_amount) : '');
+    document.getElementById('disburse-amount').value = app ? app.requested_amount : '';
+    document.getElementById('disburse-reference').value = '';
+    document.getElementById('btn-confirm-disburse').onclick = async function() {
+      var amount = parseFloat(document.getElementById('disburse-amount').value);
+      var reference = document.getElementById('disburse-reference').value.trim();
+      if (!(amount > 0)) return A.err(msg, 'Please enter a valid disbursed amount.');
+      if (!reference) return A.err(msg, 'Please enter a disbursement reference.');
+      closeModal();
+      var r = await db.rpc('mark_loan_disbursed', { app_id: appId, amount: amount, reference: reference });
+      if (r.error) return A.err(msg, 'Could not mark as disbursed: ' + r.error.message);
+      A.ok(msg, 'Marked as disbursed.');
+      load();
+    };
+    document.getElementById('modal-disburse').classList.add('on');
+  };
+
+  window.markSettled = function(appId) {
+    var app = STATE.activeApps.concat(STATE.arrearsApps).find(function(a) { return a.id === appId; });
+    document.getElementById('settle-details').textContent = (app ? nameOf(app) + ' \u2014 ' : '') + 'owes ' + (app ? fmt.format(app.total_repayable) : '');
+    document.getElementById('settle-amount').value = app ? app.total_repayable : '';
+    document.getElementById('settle-reference').value = '';
+    document.getElementById('btn-confirm-settle').onclick = async function() {
+      var amount = parseFloat(document.getElementById('settle-amount').value);
+      var reference = document.getElementById('settle-reference').value.trim();
+      if (!(amount > 0)) return A.err(msg, 'Please enter a valid collected amount.');
+      if (!reference) return A.err(msg, 'Please enter a collection reference.');
+      closeModal();
+      var r = await db.rpc('mark_loan_settled', { app_id: appId, amount: amount, reference: reference });
+      if (r.error) return A.err(msg, 'Could not mark as settled: ' + r.error.message);
+      A.ok(msg, 'Marked as settled.');
+      load();
+    };
+    document.getElementById('modal-settle').classList.add('on');
+  };
 
   window.closeModal = function() {
     document.getElementById('modal-decision').classList.remove('on');
     document.getElementById('modal-invite').classList.remove('on');
+    document.getElementById('modal-docs').classList.remove('on');
+    document.getElementById('modal-details').classList.remove('on');
+    document.getElementById('modal-disburse').classList.remove('on');
+    document.getElementById('modal-settle').classList.remove('on');
   };
-
-  document.querySelectorAll('.nav-link').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      var view = this.getAttribute('data-view');
-      document.querySelectorAll('.nav-link').forEach(function(l) { l.classList.remove('on'); });
-      this.classList.add('on');
-      document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('on'); });
-      document.getElementById('view-' + view).classList.add('on');
-      STATE.currentView = view;
-    });
-  });
-
-  document.getElementById('signout').addEventListener('click', function(e) {
-    e.preventDefault();
-    A.signOut();
-  });
 
   document.getElementById('btn-invite').addEventListener('click', function() {
     document.getElementById('modal-invite').classList.add('on');

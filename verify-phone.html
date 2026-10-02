@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verify your cellphone — snapcash</title>
+<link rel="icon" type="image/png" href="assets/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* Nothing protected lives on this page, but we still hide the body
+     until we know which step to show, so there's never a flash of the
+     wrong UI (e.g. the phone form flashing for someone already past it). */
+  body.gate-loading > *:not(.gate-loading-screen) { display: none; }
+  .gate-loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body class="gate-loading">
+<div class="gate-loading-screen">Checking your session…</div>
+
+<div class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html"><img src="assets/logo.png" alt="snapcash" class="logo-img"></a>
+    <nav class="nav-links">
+      <a href="#" data-signout>Log out</a>
+    </nav>
+  </div>
+</div>
+
+<main class="app-main">
+  <h1 style="font-size: clamp(28px,4vw,38px); margin-bottom: 6px;">Verify your cellphone.</h1>
+  <p class="sub" style="margin-bottom: 26px;">One more step before you can continue — WhatsApp verification is required on every snapcash account.</p>
+
+  <div class="alert" id="msg"></div>
+
+  <div class="form-card" style="max-width:none;" id="pane-phone">
+    <div class="form-group">
+      <label for="wa-phone">WhatsApp number</label>
+      <div class="phone-input-row">
+        <span class="phone-prefix">+27</span>
+        <input id="wa-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="82 123 4567" />
+      </div>
+      <p class="field-err" id="e-wa-phone">Please enter a valid South African mobile number.</p>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin:0 0 18px;">We'll send a six-digit code to this number on WhatsApp. It's valid for 5 minutes.</p>
+    <button class="btn btn-blue" style="width:100%;" id="btn-send-otp">Send code via WhatsApp</button>
+  </div>
+
+  <div class="form-card" style="max-width:none; display:none;" id="pane-otp">
+    <p style="font-size:14px; margin-bottom:18px;">Enter the 6-digit code sent to <strong id="wa-masked-number" style="color:var(--ink);"></strong>.</p>
+    <div class="otp-boxes" id="otp-boxes" role="group" aria-label="Six digit verification code">
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 1" />
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 2" />
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 3" />
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 4" />
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 5" />
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 6" />
+    </div>
+    <div class="otp-meta">
+      <span id="wa-countdown">Code expires in 5:00</span>
+      <button type="button" id="btn-resend-otp" disabled>Resend (60s)</button>
+    </div>
+    <button class="btn btn-blue" style="width:100%;" id="btn-verify-otp">Verify &amp; continue</button>
+    <p class="linkline"><a href="#" id="wa-back">Use a different number</a></p>
+  </div>
+</main>
+
+<script src="supabase-loader.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>
+(function () {
+  var A = window.SnapAuth, msg = document.getElementById('msg');
+  if (A.showConfigWarning(msg)) return;
+  var db = A.client;
+
+  var normalizedPhone = null;
+  var countdownTimer = null, resendTimer = null, otpRequestInFlight = false;
+
+  function reveal() { document.body.classList.remove('gate-loading'); }
+
+  /* This page IS the destination for requires_phone_enrolment, so it
+     inspects state directly rather than calling the generic guard
+     (which would just redirect back here). */
+  async function gate() {
+    var st = await A.getAuthState();
+    if (st.state === 'signed_out') { location.href = 'login.html'; return; }
+    if (st.state === 'awaiting_email_confirmation') { location.href = 'login.html'; return; }
+    if (st.state === 'requires_login_whatsapp_otp') { location.href = 'verify-login.html' + location.search; return; }
+    if (st.state === 'fully_verified') { location.href = A.safeNextPage(); return; }
+    /* requires_phone_enrolment — correct place, show the form */
+    reveal();
+  }
+
+  function clearTimers() {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    if (resendTimer) { clearInterval(resendTimer); resendTimer = null; }
+  }
+  window.addEventListener('pagehide', clearTimers);
+
+  function startCountdown() {
+    var secondsLeft = 300;
+    var el = document.getElementById('wa-countdown');
+    function tick() {
+      var mm = Math.floor(secondsLeft / 60), ss = secondsLeft % 60;
+      el.textContent = secondsLeft > 0 ? 'Code expires in ' + mm + ':' + (ss < 10 ? '0' : '') + ss : 'Code expired — request a new one';
+      if (secondsLeft <= 0) clearInterval(countdownTimer);
+      secondsLeft--;
+    }
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+  function startResendCooldown() {
+    var secondsLeft = 60;
+    var btn = document.getElementById('btn-resend-otp');
+    btn.disabled = true;
+    function tick() {
+      btn.textContent = secondsLeft > 0 ? 'Resend (' + secondsLeft + 's)' : 'Resend code';
+      btn.disabled = secondsLeft > 0;
+      if (secondsLeft <= 0) clearInterval(resendTimer);
+      secondsLeft--;
+    }
+    tick();
+    resendTimer = setInterval(tick, 1000);
+  }
+
+  function otpDigits() {
+    return Array.prototype.map.call(document.querySelectorAll('#otp-boxes input'), function (i) { return i.value; }).join('');
+  }
+  function clearOtpBoxes() {
+    document.querySelectorAll('#otp-boxes input').forEach(function (i) { i.value = ''; });
+    document.querySelector('#otp-boxes input').focus();
+  }
+  var otpBoxes = Array.prototype.slice.call(document.querySelectorAll('#otp-boxes input'));
+  otpBoxes.forEach(function (box, idx) {
+    box.addEventListener('input', function () {
+      box.value = box.value.replace(/[^0-9]/g, '').slice(0, 1);
+      if (box.value && idx < otpBoxes.length - 1) otpBoxes[idx + 1].focus();
+    });
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !box.value && idx > 0) otpBoxes[idx - 1].focus();
+    });
+    box.addEventListener('paste', function (e) {
+      var text = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+      if (!text) return;
+      e.preventDefault();
+      for (var i = 0; i < otpBoxes.length; i++) otpBoxes[i].value = text[i] || '';
+      var last = Math.min(text.length, otpBoxes.length) - 1;
+      if (last >= 0) otpBoxes[last].focus();
+    });
+  });
+
+  function otpErrorMessage(error) {
+    var m = (error && error.message || '').toLowerCase();
+    if (/rate limit|too many/.test(m)) return 'Too many attempts — please wait a few minutes and try again.';
+    if (/expired/.test(m)) return 'That code has expired. Request a new one below.';
+    if (/already.*register|already.*exist|already.*use/.test(m)) return 'That number couldn\u2019t be used. Please try a different one or contact support.';
+    if (/invalid|token|otp/.test(m)) return 'That code isn\u2019t right. Check the digits and try again.';
+    if (/network|fetch|timeout/.test(m)) return 'Network problem — check your connection and try again.';
+    return 'We couldn\u2019t send a code right now. Please try again shortly.';
+  }
+
+  function showOtpPane() {
+    document.getElementById('wa-masked-number').textContent = A.maskPhone(normalizedPhone);
+    document.getElementById('pane-phone').style.display = 'none';
+    document.getElementById('pane-otp').style.display = '';
+    clearOtpBoxes();
+    startCountdown();
+    startResendCooldown();
+  }
+  function showPhonePane() {
+    clearTimers();
+    document.getElementById('pane-otp').style.display = 'none';
+    document.getElementById('pane-phone').style.display = '';
+    A.hide(msg);
+  }
+
+  async function requestOtp(isResend) {
+    if (otpRequestInFlight) return;
+    var candidate;
+    if (isResend) {
+      candidate = normalizedPhone;
+    } else {
+      var typed = document.getElementById('wa-phone').value.trim();
+      candidate = A.normalizeZaPhone(typed) || A.normalizeZaPhone('0' + typed.replace(/[^0-9]/g, ''));
+    }
+    if (!candidate) { document.getElementById('e-wa-phone').style.display = 'block'; return; }
+    document.getElementById('e-wa-phone').style.display = 'none';
+
+    otpRequestInFlight = true;
+    var sendBtn = document.getElementById('btn-send-otp');
+    if (!isResend) { sendBtn.disabled = true; sendBtn.classList.add('btn-loading'); }
+
+    /* Enrolling a phone onto an ALREADY authenticated user must go through
+       updateUser(), never signInWithOtp({shouldCreateUser:true}) — the
+       latter creates a brand-new anonymous-phone identity instead of
+       attaching the number to this person's existing account. Calling
+       updateUser({phone}) is what triggers Supabase to send the OTP here. */
+    var r = await db.auth.updateUser({ phone: candidate });
+
+    otpRequestInFlight = false;
+    if (!isResend) { sendBtn.disabled = false; sendBtn.classList.remove('btn-loading'); }
+
+    if (r.error) return A.err(msg, otpErrorMessage(r.error));
+
+    normalizedPhone = candidate;
+    if (isResend) {
+      A.ok(msg, 'A new code has been sent.');
+      clearOtpBoxes(); startCountdown(); startResendCooldown();
+    } else {
+      showOtpPane();
+    }
+  }
+
+  document.getElementById('btn-send-otp').addEventListener('click', function () { requestOtp(false); });
+  document.getElementById('btn-resend-otp').addEventListener('click', function () { requestOtp(true); });
+  document.getElementById('wa-back').addEventListener('click', function (e) { e.preventDefault(); showPhonePane(); });
+
+  document.getElementById('btn-verify-otp').addEventListener('click', async function () {
+    var code = otpDigits();
+    if (code.length !== 6) return A.err(msg, 'Please enter all 6 digits.');
+
+    var btn = this;
+    btn.disabled = true; btn.classList.add('btn-loading');
+
+    /* type MUST be phone_change here — this OTP is confirming a phone
+       being attached to an existing account, not a phone-only sign-in. */
+    var r = await db.auth.verifyOtp({ phone: normalizedPhone, token: code, type: 'phone_change' });
+
+    if (r.error) {
+      btn.disabled = false; btn.classList.remove('btn-loading');
+      A.err(msg, otpErrorMessage(r.error));
+      clearOtpBoxes();
+      return;
+    }
+
+    /* Confirm with a fresh fetch that Supabase itself now reports a
+       verified phone — don't just trust the local verifyOtp response. */
+    var check = await db.auth.getUser();
+    if (check.error || !check.data.user.phone_confirmed_at) {
+      btn.disabled = false; btn.classList.remove('btn-loading');
+      A.err(msg, 'Something went wrong confirming your number. Please try again.');
+      return;
+    }
+
+    clearTimers();
+    /* They just proved ownership of their phone in this exact session —
+       that satisfies the mandatory per-login challenge too, so they
+       aren't immediately asked to do it again one page later. */
+    var sid = A.getSessionId((await db.auth.getSession()).data.session);
+    await A.recordLoginVerified(check.data.user.id, sid);
+
+    location.href = A.safeNextPage();
+  });
+
+  gate();
+})();
+</script>
+</body>
+</html>

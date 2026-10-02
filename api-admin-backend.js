@@ -1,5 +1,5 @@
 /**
- * Snapcash Phase 3 â€” Admin Backend API
+ * Snapcash Phase 3 — Admin Backend API
  * 
  * This runs on a Node.js serverless platform (Vercel, Netlify, or your own server).
  * It handles:
@@ -19,7 +19,7 @@
  * 3. Deploy and set BASE_URL in config.js to this server's /api/admin/ path
  */
 
-import Resend from 'resend';
+import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -33,7 +33,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export default async function handler(req, res) {
   /* CORS: the admin panel lives on a different domain (snapcash.sequenceindustries.xyz)
      than this backend (*.vercel.app). Without these headers, browsers silently block
-     the request before it reaches this code at all â€” the button just does nothing. */
+     the request before it reaches this code at all — the button just does nothing. */
   res.setHeader('Access-Control-Allow-Origin', 'https://snapcash.sequenceindustries.xyz');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -73,8 +73,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Application not found or already processed' });
     }
 
-    const { data: userAuth } = await supabase.auth.admin.getUserById(app.user_id);
-    const recipientEmail = userAuth?.email;
+    const { data: userAuthData, error: userAuthError } = await supabase.auth.admin.getUserById(app.user_id);
+    const recipientEmail = userAuthData?.user?.email;
+
+    if (userAuthError || !recipientEmail) {
+      console.error('Could not resolve applicant email:', userAuthError);
+      return res.status(500).json({ error: 'Could not find the applicant\'s email address: ' + (userAuthError?.message || 'no email on record') });
+    }
 
     /* Update application status */
     const updateData = {
@@ -108,7 +113,7 @@ export default async function handler(req, res) {
     const fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
 
     if (decision === 'approved') {
-      emailSubject = 'âœ… Your Snapcash application is approved';
+      emailSubject = '✅ Your Snapcash application is approved';
       emailHtml = `
         <h2>Good news, ${name}!</h2>
         <p>Your application for <strong>${fmt.format(app.requested_amount)}</strong> has been <strong>approved</strong>.</p>
@@ -126,14 +131,20 @@ export default async function handler(req, res) {
       `;
     }
 
-    const { error: emailError } = await resend.emails.send({
-      from: 'Snapcash <applications@snapcash.sequenceindustries.xyz>',
-      to: recipientEmail,
-      subject: emailSubject,
-      html: emailHtml
-    });
+    let emailError = null;
+    try {
+      var sendResult = await resend.emails.send({
+        from: 'Snapcash <onboarding@resend.dev>',
+        to: recipientEmail,
+        subject: emailSubject,
+        html: emailHtml
+      });
+      emailError = sendResult.error || null;
+    } catch (sendException) {
+      emailError = { message: sendException.message || String(sendException) };
+    }
 
-    /* Log email attempt */
+    /* Log email attempt — this now runs no matter what happened above */
     await supabase.from('email_logs').insert({
       recipient_email: recipientEmail,
       recipient_user_id: app.user_id,

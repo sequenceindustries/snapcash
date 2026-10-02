@@ -3,18 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Apply — Snapcash</title>
-<meta name="description" content="Apply for a Snapcash loan: create your account, confirm your details and consent, and submit your application in minutes." />
+<title>Apply — snapcash</title>
+<meta name="description" content="Apply for a snapcash loan: create your account, upload your documents, confirm your consent, and submit your application." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
+<link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body>
 
 <div class="nav">
   <div class="wrap nav-inner">
-    <a class="logo" href="index.html"><span class="logo-mark">S</span>snapcash</a>
+    <a class="logo" href="index.html"><img src="assets/logo.png" alt="snapcash" class="logo-img"></a>
     <nav class="nav-links">
       <a href="login.html">Login</a>
       <a class="btn btn-blue" href="apply.html">Apply</a>
@@ -23,36 +24,56 @@
 </div>
 
 <main class="app-main">
-  <p class="kicker">Application</p>
   <h1 style="font-size: clamp(28px,4vw,42px); margin-bottom: 6px;">Let's get you sorted.</h1>
-  <p class="sub" style="margin-bottom: 26px;">Applying creates your Snapcash account as you go — one flow, about 3 minutes.</p>
+  <p class="sub" style="margin-bottom: 26px;">Applying creates your snapcash account as you go — have your ID, latest payslip and bank statements ready.</p>
 
   <div class="alert" id="msg"></div>
 
   <div class="form-card" style="max-width:none;">
     <div class="steps">
       <div class="step on" id="s1"></div><div class="step" id="s2"></div>
-      <div class="step" id="s3"></div><div class="step" id="s4"></div>
+      <div class="step" id="s3"></div><div class="step" id="s4"></div><div class="step" id="s5"></div>
     </div>
 
     <!-- ============ STEP 1 · ACCOUNT ============ -->
     <div class="pane on" id="pane-account">
       <h3 style="margin-bottom:4px;">Step 1 · Your account</h3>
-      <p style="font-size:14px; margin-bottom:18px;">This is the login you'll use to track your application and manage your loan.</p>
+      <p style="font-size:14px; margin-bottom:18px;">This is the login you'll use to track your application and manage your loan. WhatsApp verification is required next, on every account.</p>
       <div class="form-group">
         <label for="a-email">Email</label>
         <input id="a-email" type="email" autocomplete="email" placeholder="you@example.com" />
       </div>
       <div class="form-group">
         <label for="a-pass">Password</label>
-        <input id="a-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+        <div style="position:relative;">
+          <input id="a-pass" type="password" autocomplete="new-password" placeholder="At least 12 characters" style="padding-right:52px;" />
+          <button type="button" id="a-pass-toggle" aria-label="Show password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); font-size:12px; font-weight:600; cursor:pointer; padding:4px 6px;">Show</button>
+        </div>
+        <ul class="pw-checklist" id="pw-checklist" aria-live="polite">
+          <li id="pw-req-len" data-ok="false">At least 12 characters</li>
+          <li id="pw-req-lower" data-ok="false">A lowercase letter</li>
+          <li id="pw-req-upper" data-ok="false">An uppercase letter</li>
+          <li id="pw-req-digit" data-ok="false">A number</li>
+          <li id="pw-req-symbol" data-ok="false">A symbol (e.g. ! @ # $ %)</li>
+        </ul>
       </div>
       <div class="form-group">
         <label for="a-pass2">Confirm password</label>
         <input id="a-pass2" type="password" autocomplete="new-password" placeholder="Same password again" />
       </div>
       <button class="btn btn-blue" style="width:100%;" id="btn-account">Create account &amp; continue</button>
-      <p class="linkline">Already applied before? <a href="login.html">Log in</a></p>
+
+      <div style="display:flex; align-items:center; gap:12px; margin:20px 0;">
+        <div style="flex:1; height:1px; background:var(--line-strong);"></div>
+        <span style="font-size:12px; color:var(--muted);">or</span>
+        <div style="flex:1; height:1px; background:var(--line-strong);"></div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-google">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.55-1.84.87-3.06.87-2.36 0-4.36-1.6-5.07-3.75H.9v2.33A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.93 10.68A5.4 5.4 0 0 1 3.64 9c0-.58.1-1.15.29-1.68V4.99H.9A9 9 0 0 0 0 9c0 1.45.35 2.83.9 4.01l3.03-2.33Z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .9 4.99l3.03 2.33C4.64 5.17 6.64 3.58 9 3.58Z"/></svg>
+        Continue with Google
+      </button>
+
+      <p class="linkline" style="margin-top:16px;">Already applied before? <a href="login.html">Log in</a></p>
     </div>
 
     <!-- ============ STEP 1b · VERIFY EMAIL (only if confirmation is on) ============ -->
@@ -90,39 +111,76 @@
         </select>
       </div>
       <div class="form-group">
+        <label for="d-employer">Employer</label>
+        <input id="d-employer" type="text" autocomplete="organization" placeholder="Company name" />
+      </div>
+      <div class="form-group">
+        <label for="d-jobtitle">Job title</label>
+        <input id="d-jobtitle" type="text" autocomplete="organization-title" placeholder="e.g. Sales Assistant" />
+      </div>
+      <div class="form-group">
         <label for="d-income">Monthly income after deductions (R)</label>
         <input id="d-income" type="number" min="0" step="1" placeholder="e.g. 12500" />
+      </div>
+      <div class="form-group">
+        <label for="d-address">Physical address</label>
+        <textarea id="d-address" rows="3" placeholder="Street address, suburb, city, postal code"></textarea>
       </div>
       <button class="btn btn-blue" style="width:100%;" id="btn-details">Save &amp; continue</button>
     </div>
 
-    <!-- ============ STEP 3 · POPIA ============ -->
+    <!-- ============ STEP 3 · DOCUMENTS ============ -->
+    <div class="pane" id="pane-documents">
+      <h3 style="margin-bottom:4px;">Step 3 · Your documents</h3>
+      <p style="font-size:14px; margin-bottom:18px;">We review these directly — no automated bank-linking, just a real person confirming your identity and affordability. PDF, JPG or PNG, up to 10MB each.</p>
+
+      <div class="form-group">
+        <label for="doc-id">Copy of your ID (ID book, smart card, or passport)</label>
+        <input id="doc-id" type="file" accept=".pdf,.jpg,.jpeg,.png" />
+        <p class="field-err" id="e-doc-id">Please attach a copy of your ID.</p>
+      </div>
+      <div class="form-group">
+        <label for="doc-payslip">Latest payslip</label>
+        <input id="doc-payslip" type="file" accept=".pdf,.jpg,.jpeg,.png" />
+        <p class="field-err" id="e-doc-payslip">Please attach your latest payslip.</p>
+      </div>
+      <div class="form-group">
+        <label for="doc-statements">Bank statements — last 3 months (select multiple)</label>
+        <input id="doc-statements" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple />
+        <p class="field-err" id="e-doc-statements">Please attach at least one bank statement.</p>
+      </div>
+
+      <p id="doc-progress" style="font-size:13px; color:var(--muted); display:none; margin-bottom:14px;"></p>
+      <button class="btn btn-blue" style="width:100%;" id="btn-documents">Upload &amp; continue</button>
+    </div>
+
+    <!-- ============ STEP 4 · POPIA ============ -->
     <div class="pane" id="pane-popia">
-      <h3 style="margin-bottom:4px;">Step 3 · Your consent</h3>
+      <h3 style="margin-bottom:4px;">Step 4 · Your consent</h3>
       <p style="font-size:14px; margin-bottom:18px;">POPIA puts you in control of your personal information. Each consent below is recorded with its exact wording and a timestamp.</p>
       <label class="consent"><input type="checkbox" class="c-req" data-type="personal_information_processing" />
-        <span id="ct-1">I consent to Snapcash processing my personal information to assess this credit application, as described in the Privacy Policy.</span></label>
+        <span id="ct-1">I consent to snapcash processing my personal information to assess this credit application, as described in the Privacy Policy.</span></label>
       <label class="consent"><input type="checkbox" class="c-req" data-type="bank_statement_retrieval" />
-        <span id="ct-2">I authorise Snapcash to retrieve my bank statements for the last 3 months via Stitch, for affordability assessment.</span></label>
+        <span id="ct-2">I will provide my ID, latest payslip and last 3 months' bank statements, and authorise snapcash to use these to assess my application.</span></label>
       <label class="consent"><input type="checkbox" class="c-req" data-type="credit_bureau_enquiry" />
-        <span id="ct-3">I authorise Snapcash to perform a credit bureau enquiry on my profile.</span></label>
+        <span id="ct-3">I authorise snapcash to perform a credit bureau enquiry on my profile.</span></label>
       <label class="consent"><input type="checkbox" class="c-req" data-type="debicheck_mandate" />
-        <span id="ct-4">I understand repayment will be collected through a DebiCheck mandate that I will personally approve in my banking app.</span></label>
+        <span id="ct-4">I understand repayment will be collected through a single, pre-authorised debit order for the exact agreed amount, processed via snapcash's accredited collections partner.</span></label>
       <button class="btn btn-blue" style="width:100%; margin-top:8px;" id="btn-popia">I agree — continue</button>
       <p class="field-err" id="e-popia" style="margin-top:10px;">All four consents are required to assess a credit application.</p>
     </div>
 
-    <!-- ============ STEP 4 · QUOTE & SUBMIT ============ -->
+    <!-- ============ STEP 5 · QUOTE & SUBMIT ============ -->
     <div class="pane" id="pane-quote">
-      <h3 style="margin-bottom:4px;">Step 4 · Confirm your loan</h3>
+      <h3 style="margin-bottom:4px;">Step 5 · Confirm your loan</h3>
       <p style="font-size:14px; margin-bottom:18px;">Adjust if you like — this exact breakdown is what we assess, and the total never changes after approval.</p>
 
       <div class="calc-row-head">
         <label for="amt">I need</label>
         <span class="calc-value" id="amt-out">R 1 500,00</span>
       </div>
-      <input type="range" id="amt" min="500" max="4000" step="100" value="1500" aria-label="Loan amount in rand" />
-      <div class="calc-minmax"><span>R 500</span><span>R 4 000</span></div>
+      <input type="range" id="amt" min="500" max="2000" step="100" value="1500" aria-label="Loan amount in rand" />
+      <div class="calc-minmax"><span>R 500</span><span>R 2 000</span></div>
 
       <div class="calc-row-head">
         <label for="days">I'll repay in</label>
@@ -155,14 +213,14 @@
   if (A.showConfigWarning(msg)) return;
   var db = A.client;
 
-  var PANES = ['account', 'verify', 'details', 'popia', 'quote'];
-  var STEP_OF = { account: 1, verify: 1, details: 2, popia: 3, quote: 4 };
+  var PANES = ['account', 'verify', 'details', 'documents', 'popia', 'quote'];
+  var STEP_OF = { account: 1, verify: 1, details: 2, documents: 3, popia: 4, quote: 5 };
 
   function show(p) {
     PANES.forEach(function (x) {
       document.getElementById('pane-' + x).className = 'pane' + (x === p ? ' on' : '');
     });
-    for (var i = 1; i <= 4; i++)
+    for (var i = 1; i <= 5; i++)
       document.getElementById('s' + i).className = 'step' + (i <= STEP_OF[p] ? ' on' : '');
     A.hide(msg); window.scrollTo({ top: 0 });
   }
@@ -177,9 +235,32 @@
     var s = await A.session();
     if (!s) { show('account'); return; }
 
+    if (!s.user.email_confirmed_at) {
+      /* Same UX as before — this page's own "check your inbox" pane —
+         just now driven by the shared state definition explicitly. */
+      window._pendingEmail = s.user.email;
+      document.getElementById('v-email').textContent = s.user.email;
+      show('verify'); return;
+    }
+
+    if (!s.user.phone || !s.user.phone_confirmed_at) {
+      location.href = 'verify-phone.html?next=apply.html'; return;
+    }
+
+    var sid = A.getSessionId(s);
+    var loginVerified = await A.isLoginVerified(s.user.id, sid);
+    if (!loginVerified) { location.href = 'verify-login.html?next=apply.html'; return; }
+
+    /* fully_verified from here on — existing profile-completion routing */
     var u = s.user.id;
-    var prof = (await db.from('profiles').select('popia_accepted').eq('id', u).maybeSingle()).data;
-    if (!prof) { show('details'); return; }
+    var prof = (await db.from('profiles').select('popia_accepted, documents_submitted_at').eq('id', u).maybeSingle()).data;
+    if (!prof) {
+      /* Phone is already Supabase-verified by this point for every user —
+         pre-fill it so they don't retype a number they just confirmed. */
+      if (s.user.phone) document.getElementById('d-phone').value = s.user.phone.replace('+27', '0');
+      show('details'); return;
+    }
+    if (!prof.documents_submitted_at) { show('documents'); return; }
     if (!prof.popia_accepted) { show('popia'); return; }
 
     var active = (await db.from('loan_applications').select('id')
@@ -189,12 +270,53 @@
     show('quote');
   }
 
+  /* ---------- Strong password policy ---------- */
+  function passwordChecks(pw) {
+    return {
+      len: pw.length >= 12,
+      lower: /[a-z]/.test(pw),
+      upper: /[A-Z]/.test(pw),
+      digit: /[0-9]/.test(pw),
+      symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(pw)
+    };
+  }
+  function passwordOk(checks) {
+    return checks.len && checks.lower && checks.upper && checks.digit && checks.symbol;
+  }
+  document.getElementById('a-pass').addEventListener('input', function () {
+    var c = passwordChecks(this.value);
+    document.getElementById('pw-req-len').setAttribute('data-ok', c.len);
+    document.getElementById('pw-req-lower').setAttribute('data-ok', c.lower);
+    document.getElementById('pw-req-upper').setAttribute('data-ok', c.upper);
+    document.getElementById('pw-req-digit').setAttribute('data-ok', c.digit);
+    document.getElementById('pw-req-symbol').setAttribute('data-ok', c.symbol);
+  });
+  document.getElementById('a-pass-toggle').addEventListener('click', function () {
+    var input = document.getElementById('a-pass');
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    this.textContent = showing ? 'Show' : 'Hide';
+  });
+
+  /* ---------- Google ----------
+     Same-origin absolute redirect, no extra scopes, no Google token
+     storage — see login.html for the full rationale (identical logic). */
+  document.getElementById('btn-google').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true;
+    var r = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: location.origin + '/auth-callback.html' }
+    });
+    if (r.error) { btn.disabled = false; A.err(msg, 'Could not start Google sign-in. Please try again.'); }
+  });
+
   /* ---------- Step 1: account ---------- */
   document.getElementById('btn-account').addEventListener('click', async function () {
     var email = document.getElementById('a-email').value.trim();
     var p1 = document.getElementById('a-pass').value, p2 = document.getElementById('a-pass2').value;
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return A.err(msg, 'Please enter a valid email address.');
-    if (p1.length < 8) return A.err(msg, 'Password must be at least 8 characters.');
+    if (!passwordOk(passwordChecks(p1))) return A.err(msg, 'Please meet all the password requirements shown below the field.');
     if (p1 !== p2) return A.err(msg, 'The two passwords don\u2019t match.');
 
     busy(this, true);
@@ -234,7 +356,10 @@
     var said = document.getElementById('d-id').value.replace(/\s+/g, '');
     var phone = document.getElementById('d-phone').value.replace(/\s+/g, '');
     var emp = document.getElementById('d-emp').value;
+    var employer = document.getElementById('d-employer').value.trim();
+    var jobTitle = document.getElementById('d-jobtitle').value.trim();
     var income = Number(document.getElementById('d-income').value);
+    var address = document.getElementById('d-address').value.trim();
 
     var okId = A.validSaId(said), okPh = A.validZaPhone(phone);
     document.getElementById('e-id').style.display = okId ? 'none' : 'block';
@@ -245,8 +370,9 @@
 
     busy(this, true);
     var r = await db.from('profiles').upsert({
-      id: s.user.id, first_name: first, last_name: last, sa_id_number: said,
-      phone_number: phone, employment_status: emp, monthly_net_income: income
+      id: s.user.id, email: s.user.email, first_name: first, last_name: last, sa_id_number: said,
+      phone_number: phone, employment_status: emp, employer: employer, job_title: jobTitle,
+      monthly_net_income: income, physical_address: address
     });
     busy(this, false);
 
@@ -254,6 +380,65 @@
       if (r.error.code === '23505') return A.err(msg, 'That ID number is already registered with another account.');
       return A.err(msg, 'Could not save your details: ' + r.error.message);
     }
+    show('documents');
+  });
+
+  /* ---------- Step 3: documents ---------- */
+  function extOf(file) {
+    var m = /\.([a-z0-9]+)$/i.exec(file.name);
+    return m ? m[1].toLowerCase() : 'bin';
+  }
+  function validDoc(file) {
+    var okType = /\.(pdf|jpg|jpeg|png)$/i.test(file.name);
+    var okSize = file.size <= 10 * 1024 * 1024;
+    return okType && okSize;
+  }
+
+  document.getElementById('btn-documents').addEventListener('click', async function () {
+    var s = await A.session(); if (!s) return show('account');
+    var idFile = document.getElementById('doc-id').files[0];
+    var paySlipFile = document.getElementById('doc-payslip').files[0];
+    var stmtFiles = Array.prototype.slice.call(document.getElementById('doc-statements').files);
+
+    var okId = !!idFile && validDoc(idFile);
+    var okPay = !!paySlipFile && validDoc(paySlipFile);
+    var okStmt = stmtFiles.length > 0 && stmtFiles.every(validDoc);
+
+    document.getElementById('e-doc-id').style.display = okId ? 'none' : 'block';
+    document.getElementById('e-doc-payslip').style.display = okPay ? 'none' : 'block';
+    document.getElementById('e-doc-statements').style.display = okStmt ? 'none' : 'block';
+    if (idFile && !validDoc(idFile)) document.getElementById('e-doc-id').textContent = 'PDF, JPG or PNG only, up to 10MB.';
+    if (paySlipFile && !validDoc(paySlipFile)) document.getElementById('e-doc-payslip').textContent = 'PDF, JPG or PNG only, up to 10MB.';
+    if (stmtFiles.length && !stmtFiles.every(validDoc)) document.getElementById('e-doc-statements').textContent = 'PDF, JPG or PNG only, up to 10MB each.';
+    if (!okId || !okPay || !okStmt) return;
+
+    var btn = this, progressEl = document.getElementById('doc-progress');
+    busy(btn, true);
+    progressEl.style.display = 'block';
+
+    var uploads = [
+      { file: idFile, path: s.user.id + '/id.' + extOf(idFile), label: 'ID' },
+      { file: paySlipFile, path: s.user.id + '/payslip.' + extOf(paySlipFile), label: 'payslip' }
+    ];
+    stmtFiles.forEach(function (f, i) {
+      uploads.push({ file: f, path: s.user.id + '/statement-' + (i + 1) + '.' + extOf(f), label: 'statement ' + (i + 1) });
+    });
+
+    for (var i = 0; i < uploads.length; i++) {
+      progressEl.textContent = 'Uploading ' + uploads[i].label + '\u2026 (' + (i + 1) + ' of ' + uploads.length + ')';
+      var up = await db.storage.from('applicant-documents').upload(uploads[i].path, uploads[i].file, { upsert: true });
+      if (up.error) {
+        busy(btn, false);
+        progressEl.style.display = 'none';
+        return A.err(msg, 'Could not upload your ' + uploads[i].label + ': ' + up.error.message);
+      }
+    }
+
+    var r = await db.from('profiles').update({ documents_submitted_at: new Date().toISOString() }).eq('id', s.user.id);
+    busy(btn, false);
+    progressEl.style.display = 'none';
+
+    if (r.error) return A.err(msg, 'Documents uploaded, but we could not save your progress: ' + r.error.message);
     show('popia');
   });
 
