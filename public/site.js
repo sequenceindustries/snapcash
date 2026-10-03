@@ -41,6 +41,16 @@
   }
 
   var state = { amount: 1500, days: 21 };
+
+  /* Start the payday slider on the 25th (moved back to the Friday if it falls on a
+     weekend) — the most common payday — when that's 5 to 30 days away. */
+  function defaultPayday() {
+    for (var d = LIMITS.minDays; d <= LIMITS.maxDays; d++) {
+      var dt = paydayDate(d), wd = dt.getUTCDay(), day = dt.getUTCDate();
+      if ((day === 25 && wd >= 1 && wd <= 5) || (wd === 5 && (day === 23 || day === 24))) return d;
+    }
+    return 21;
+  }
   var listeners = [];
 
   function set(amount, days) {
@@ -130,6 +140,6 @@
 
   var p = new URLSearchParams(location.search);
   state.amount = clampAmount(p.get('amount') || 1500);
-  state.days = clampDays(p.get('days') || 21);
+  state.days = clampDays(p.get('days') || defaultPayday());
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
 })();
