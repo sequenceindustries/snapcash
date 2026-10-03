@@ -5,7 +5,7 @@
   "type": "module",
   "description": "snapcash.money — pages and API in one Node service, backed by Railway Postgres and a Railway bucket.",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node server/index.js",
