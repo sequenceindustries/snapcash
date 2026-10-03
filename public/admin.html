@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin — snapcash</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 <link rel="icon" type="image/png" href="assets/favicon.png" />
 <style>
@@ -25,7 +25,7 @@ main h1 { margin-bottom: 10px; }
 .summary-date { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin-bottom: -2px; }
 .summary-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
 .summary-card:hover { border-color: var(--tint-line); transform: translateY(-2px); }
-.summary-card .num { font-size: 26px; font-weight: 800; color: var(--ink); font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
+.summary-card .num { font-size: 26px; font-weight: 800; color: var(--ink); font-family: var(--display); line-height: 1; }
 .summary-card .lbl { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .summary-card.alert-card { border-color: rgba(255,120,100,.4); background: rgba(255,120,100,.06); }
 .summary-card.alert-card .num { color: #c0392b; }
@@ -322,7 +322,7 @@ table a:hover { text-decoration: underline; }
     <p id="modal-decision-summary"></p>
     <div class="form-group">
       <label for="modal-notes">Notes (optional)</label>
-      <textarea id="modal-notes" style="width:100%; min-height:80px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-family:Inter; font-size:13px;"></textarea>
+      <textarea id="modal-notes" style="width:100%; min-height:80px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-family:inherit; font-size:13px;"></textarea>
     </div>
     <div class="actions">
       <button onclick="closeModal()" class="btn">Cancel</button>
