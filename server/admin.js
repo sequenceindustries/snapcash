@@ -5,7 +5,7 @@ import { query, one, tx } from './db.js';
 import { requireVerified, httpError, wrap, normalizeEmail } from './auth.js';
 import { getObjectStream } from './storage.js';
 import { sendEmail, templates } from './email.js';
-import { saDatePlus } from './quote.js';
+import { saDatePlus, quote, LIMITS } from './quote.js';
 
 export const adminRouter = express.Router();
 
@@ -160,17 +160,30 @@ function moneyAndRef(body) {
 
 adminRouter.post('/api/admin/applications/:id/disburse', requireDecider, wrap(async (req, res) => {
   const { amount, reference } = moneyAndRef(req.body);
-  await tx(async (c) => {
-    const cur = (await c.query('select term_days from loan_applications where id = $1', [req.params.id])).rows[0];
+  const result = await tx(async (c) => {
+    const cur = (await c.query(
+      `select requested_amount, term_days, total_repayable, due_date from loan_applications where id = $1 for update`,
+      [req.params.id])).rows[0];
     if (!cur) throw httpError(404, 'Application not found.');
-    // The repayment date runs from the day the cash is actually paid out.
-    await transition(c, {
-      id: req.params.id, from: 'debicheck_authorized', to: 'disbursed', admin: req.admin, notes: reference,
-      set: ', disbursed_at = now(), disbursed_amount = $4, disbursement_reference = $5, due_date = $6',
-      params: [amount, reference, saDatePlus(cur.term_days)],
+    // The debit order runs on the payday the applicant chose. Per-day charges are
+    // re-worked for the days from today's payout to that payday — never more than quoted.
+    const today = saDatePlus(0);
+    const daysLeft = Math.round((Date.parse(cur.due_date) - Date.parse(today)) / 86400000);
+    if (daysLeft < LIMITS.minDays) {
+      throw httpError(409, `Only ${daysLeft} day(s) to this applicant's payday (${cur.due_date}) — the minimum is ${LIMITS.minDays}. Contact them to move repayment to their next payday before paying out.`);
+    }
+    const days = Math.min(daysLeft, cur.term_days);
+    const q = quote(Number(cur.requested_amount), days);
+    const row = await transition(c, {
+      id: req.params.id, from: 'debicheck_authorized', to: 'disbursed', admin: req.admin,
+      notes: `${reference} · ${days} days to payday · total ${q.total.toFixed(2)}`,
+      set: `, disbursed_at = now(), disbursed_amount = $4, disbursement_reference = $5,
+             term_days = $6, service_fee = $7, interest_amount = $8, total_repayable = $9`,
+      params: [amount, reference, days, q.serviceFee, q.interest, q.total],
     });
+    return { total: row.total_repayable, previous: Number(cur.total_repayable), days, due_date: cur.due_date };
   });
-  res.json({ ok: true });
+  res.json({ ok: true, ...result });
 }));
 
 adminRouter.post('/api/admin/applications/:id/settle', requireDecider, wrap(async (req, res) => {

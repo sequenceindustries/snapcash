@@ -188,7 +188,11 @@ test('full applicant + admin journey', async () => {
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal((await a.call('POST', `/api/admin/applications/${appId}/decision`, { decision: 'declined' })).status, 409);
   assert.equal((await a.call('POST', `/api/admin/applications/${appId}/debicheck`, {})).status, 200);
-  assert.equal((await a.call('POST', `/api/admin/applications/${appId}/disburse`, { amount: 1500, reference: 'EFT-1' })).status, 200);
+  r = await a.call('POST', `/api/admin/applications/${appId}/disburse`, { amount: 1500, reference: 'EFT-1' });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  // paid out the same day as the application: same 21 days to payday, same total
+  assert.equal(r.data.days, 21);
+  assert.equal(r.data.total, 1810.55);
   assert.equal((await a.call('POST', `/api/admin/applications/${appId}/settle`, { amount: 1810.55, reference: 'DC-1' })).status, 200);
   r = await a.call('GET', `/api/admin/applications/${appId}`);
   assert.equal(r.data.application.status, 'settled');

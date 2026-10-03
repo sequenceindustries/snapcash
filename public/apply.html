@@ -177,7 +177,7 @@
     <!-- ============ STEP 5 · QUOTE & SUBMIT ============ -->
     <div class="pane" id="pane-quote">
       <h3>Confirm your loan</h3>
-      <p style="font-size:14px; margin-bottom:18px;">Adjust if you like — this exact breakdown is what we assess, and the total never changes after approval.</p>
+      <p style="font-size:14px; margin-bottom:18px;">Adjust if you like. This is the breakdown we assess, and the total can only go down after approval, never up.</p>
 
       <div class="calc-row-head">
         <label for="amt">I need</label>
@@ -187,11 +187,11 @@
       <div class="calc-minmax"><span>R 500</span><span>R 2 000</span></div>
 
       <div class="calc-row-head">
-        <label for="days">I'll repay in</label>
-        <span class="calc-value" id="days-out">21 days</span>
+        <label for="days">My next payday</label>
+        <span class="calc-value" id="days-out">Fri 24 Oct</span>
       </div>
-      <input type="range" id="days" min="5" max="30" step="1" value="21" aria-label="Loan term in days" />
-      <div class="calc-minmax"><span>5 days</span><span>30 days</span></div>
+      <input type="range" id="days" min="5" max="30" step="1" value="21" aria-label="Your next payday" />
+      <div class="calc-minmax"><span data-q="payday-min">8 Oct</span><span data-q="payday-max">2 Nov</span></div>
 
       <div class="calc-quote">
         <div class="q-line"><span>Cash to your account</span><span id="q-p">—</span></div>
@@ -202,7 +202,7 @@
       </div>
 
       <button class="btn btn-blue" style="width:100%;" id="btn-submit">Submit my application</button>
-      <p class="calc-fine">By submitting you confirm your details are accurate. All costs are capped by the National Credit Act.</p>
+      <p class="calc-fine"><span data-q="payday-note"></span> The service fee and interest are charged per day for the <span data-q="days">21 days</span> from today to your payday. If your cash is paid out later than today, you're charged for fewer days. By submitting you confirm your details are accurate. All costs are capped by the National Credit Act.</p>
     </div>
   </div>
 </main>

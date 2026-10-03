@@ -799,7 +799,9 @@ table a:hover { text-decoration: underline; }
       closeModal();
       var r = await A.api('POST', '/api/admin/applications/' + encodeURIComponent(appId) + '/disburse', { amount: amount, reference: reference });
       if (!r.ok) return A.err(msg, 'Could not mark as disbursed: ' + r.error);
-      A.ok(msg, 'Marked as disbursed.');
+      var d = r.data;
+      A.ok(msg, 'Marked as disbursed. Debit order on ' + DATE(d.due_date) + ' for ' + fmt.format(d.total) +
+        (d.total < d.previous ? ' (down from ' + fmt.format(d.previous) + ' — paid out ' + d.days + ' days before payday).' : '.'));
       load();
     };
     document.getElementById('modal-disburse').classList.add('on');

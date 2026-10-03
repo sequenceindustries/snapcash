@@ -15,9 +15,20 @@
     return { p: pc / 100, i: init / 100, s: svc / 100, r: intr / 100, t: (pc + init + svc + intr) / 100, cost: (init + svc + intr) / 100 };
   }
 
+  /* Paydays are counted in South African time, the same way the server sets the debit order date. */
+  function saToday() {
+    var ymd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
+    return new Date(ymd + 'T00:00:00Z');
+  }
+  function paydayDate(d) {
+    var dt = saToday(); dt.setUTCDate(dt.getUTCDate() + Number(d));
+    return dt;
+  }
+  function fmtDate(dt, opts) {
+    return dt.toLocaleDateString('en-ZA', Object.assign({ timeZone: 'UTC' }, opts));
+  }
   function dueDate(d) {
-    var dt = new Date(); dt.setDate(dt.getDate() + Number(d));
-    return dt.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+    return fmtDate(paydayDate(d), { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
   function clampAmount(a) {
@@ -57,6 +68,16 @@
     var values = {
       amount: fmt0.format(A), 'amount-c': fmt.format(A),
       days: d + (d === 1 ? ' day' : ' days'),
+      payday: fmtDate(paydayDate(d), { weekday: 'short', day: 'numeric', month: 'short' }),
+      'payday-long': dueDate(d),
+      'payday-min': fmtDate(paydayDate(LIMITS.minDays), { day: 'numeric', month: 'short' }),
+      'payday-max': fmtDate(paydayDate(LIMITS.maxDays), { day: 'numeric', month: 'short' }),
+      'payday-note': (function () {
+        var wd = paydayDate(d).getUTCDay();
+        return wd === 0 || wd === 6
+          ? 'That\u2019s a ' + (wd === 6 ? 'Saturday' : 'Sunday') + ', so the debit order runs on the next business day.'
+          : '';
+      })(),
       p: fmt.format(q.p), i: fmt.format(q.i), s: fmt.format(q.s), r: fmt.format(q.r),
       t: fmt.format(q.t), cost: fmt.format(q.cost),
       'cost-pct': (q.cost / q.p * 100).toFixed(1).replace('.', ',') + '%'
@@ -76,7 +97,7 @@
     document.querySelectorAll('input[data-days], #days').forEach(function (r) {
       if (+r.value !== d) r.value = d;
       paintRange(r);
-      r.setAttribute('aria-valuetext', values.days);
+      r.setAttribute('aria-valuetext', 'Next payday ' + values['payday-long'] + ', ' + values.days + ' from today');
     });
     document.querySelectorAll('a[data-apply-link]').forEach(function (a) {
       a.href = 'apply.html?amount=' + A + '&days=' + d;
@@ -87,16 +108,16 @@
     /* id-based bindings used by apply.html's quote step */
     function byId(id, text) { var el = document.getElementById(id); if (el) setText(el, text); }
     byId('amt-out', values['amount-c']);
-    byId('days-out', values.days);
+    byId('days-out', values.payday);
     byId('q-p', values.p); byId('q-i', values.i); byId('q-s', values.s); byId('q-r', values.r); byId('q-t', values.t);
     byId('q-s-label', 'Service fee (' + values.days + ')');
-    byId('q-due', 'One repayment, ' + values.days + ' after payout');
+    byId('q-due', 'One repayment on ' + values['payday-long']);
 
     listeners.forEach(function (fn) { fn(state, q); });
   }
 
   window.SnapQuote = {
-    fmt: fmt, fmt0: fmt0, quote: quote, dueDate: dueDate, limits: LIMITS,
+    fmt: fmt, fmt0: fmt0, quote: quote, dueDate: dueDate, paydayDate: paydayDate, limits: LIMITS,
     state: state, set: set, on: function (fn) { listeners.push(fn); }
   };
 

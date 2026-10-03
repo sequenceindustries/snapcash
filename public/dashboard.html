@@ -138,15 +138,15 @@
         '<h3>Application \u00b7 ' + fmt.format(app.requested_amount) + ' over ' + app.term_days + ' days</h3>' +
         '<span class="badge ' + st.badge + '">' + st.label + '</span>' +
       '</div>' +
-      (app.due_date && (app.status === 'disbursed' || app.status === 'settled') ? '<p style="font-size:13.5px; color:var(--muted); margin:4px 0 0;">Debit order date: <strong style="color:var(--ink);">' + DATE(app.due_date) + '</strong></p>' : '') +
+      (app.due_date && app.status !== 'declined' ? '<p style="font-size:13.5px; color:var(--muted); margin:4px 0 0;">Debit order date: <strong style="color:var(--ink);">' + DATE(app.due_date) + '</strong></p>' : '') +
       '<div class="tl">' + tl + '</div>' +
       '<p style="font-size:14.5px; margin:16px 0 20px;">' + st.copy + '</p>' +
       '<div class="calc-quote" style="margin:0;">' +
         '<div class="q-line"><span>Cash to your account</span><span>' + fmt.format(app.requested_amount) + '</span></div>' +
         '<div class="q-line"><span>Once-off initiation fee</span><span>' + fmt.format(app.initiation_fee) + '</span></div>' +
-        '<div class="q-line"><span>Service fee (' + app.term_days + ' days)</span><span>' + fmt.format(app.service_fee) + '</span></div>' +
+        '<div class="q-line"><span>Service fee (' + app.term_days + ' days to your payday)</span><span>' + fmt.format(app.service_fee) + '</span></div>' +
         '<div class="q-line"><span>Interest (0,17%/day)</span><span>' + fmt.format(app.interest_amount) + '</span></div>' +
-        '<div class="q-total"><span class="lbl">' + (app.due_date && (app.status === 'disbursed' || app.status === 'settled') ? 'One repayment on ' + DATE(app.due_date) : 'One repayment, ' + app.term_days + ' days after payout') + '</span>' +
+        '<div class="q-total"><span class="lbl">' + (app.due_date ? 'One repayment on ' + DATE(app.due_date) : 'One repayment on your payday') + '</span>' +
         '<span class="amt">' + fmt.format(app.total_repayable) + '</span></div>' +
       '</div>' +
       (app.status === 'declined' || app.status === 'settled'

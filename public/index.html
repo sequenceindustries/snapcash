@@ -80,10 +80,11 @@
           <div class="note-scale tnum" aria-hidden="true"><span>R500</span><span>R2 000</span></div>
 
           <div class="note-term">
-            <label for="hero-days">Repay in</label>
-            <strong class="tnum" data-q="days">21 days</strong>
+            <label for="hero-days">Your next payday</label>
+            <strong class="tnum" data-q="payday">Fri 24 Oct</strong>
           </div>
-          <input type="range" id="hero-days" data-days min="5" max="30" step="1" value="21" aria-label="Loan term in days" />
+          <input type="range" id="hero-days" data-days min="5" max="30" step="1" value="21" aria-label="Your next payday" />
+          <div class="note-scale tnum" aria-hidden="true"><span data-q="payday-min">8 Oct</span><span data-q="payday-max">2 Nov</span></div>
 
           <div class="note-total">
             <div>
@@ -99,7 +100,7 @@
 
           <a class="btn btn-sky note-cta" href="apply.html" data-apply-link><span data-apply-label>Apply for R 1 500</span>
             <svg class="chev" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-          <p class="note-fine">Collected by one debit order, <span data-q="days">21 days</span> after your cash is paid out. This quote becomes binding only if your application is approved.</p>
+          <p class="note-fine">Collected by one debit order on <span data-q="payday-long">Friday 24 October</span>. <span data-q="payday-note"></span> Fees and interest are worked out for the <span data-q="days">21 days</span> from today to your payday; if your cash is paid out later, you're charged for fewer days. This quote becomes binding only if your application is approved.</p>
         </div>
 
         <!-- The same figures, broken out. Shown beside the card on wide screens, below it on phones. -->
@@ -126,7 +127,7 @@
         <li class="story-step" data-stage="0">
           <span class="story-n">1</span>
           <h3>Choose your amount</h3>
-          <p>Pick R500 to R2&nbsp;000 and a term of 5 to 30 days. The total you'll repay is shown straight away and doesn't change after approval.</p>
+          <p>Pick R500 to R2&nbsp;000 and slide to your next payday, 5 to 30 days away. The total you'll repay is shown straight away, and it can only go down after approval.</p>
           <div class="story-slider">
             <label for="story-amt">Amount <strong class="tnum" data-q="amount">R 1 500</strong></label>
             <input type="range" id="story-amt" data-amount min="500" max="2000" step="100" value="1500" />
@@ -178,7 +179,7 @@
 
               <div class="jc-body">
                 <div class="jc-pane s0">
-                  <p>Repay <strong class="tnum" data-q="t">R 1 810,55</strong> once, <span data-q="days">21 days</span> after payout.</p>
+                  <p>Repay <strong class="tnum" data-q="t">R 1 810,55</strong> once, on your payday, <span data-q="payday">Fri 24 Oct</span>.</p>
                 </div>
                 <ul class="jc-pane s1 jc-list">
                   <li>Account created</li>
@@ -212,7 +213,7 @@
     <div class="wrap">
       <div class="section-head">
         <h2 id="costs-h">Every rand, before you apply.</h2>
-        <p class="sub">There are three charges, all capped by the National Credit Act. Move the sliders and the figures below change with them.</p>
+        <p class="sub">There are three charges, all capped by the National Credit Act. Choose an amount and your next payday, and the figures below change with them.</p>
       </div>
 
       <div class="costs-grid">
@@ -224,9 +225,9 @@
               <input type="range" id="cost-amt" data-amount min="500" max="2000" step="100" value="1500" />
             </div>
             <div class="lc">
-              <label for="cost-days">Term</label>
-              <strong class="tnum" data-q="days">21 days</strong>
-              <input type="range" id="cost-days" data-days min="5" max="30" step="1" value="21" />
+              <label for="cost-days">Next payday</label>
+              <strong class="tnum" data-q="payday">Fri 24 Oct</strong>
+              <input type="range" id="cost-days" data-days min="5" max="30" step="1" value="21" aria-label="Your next payday" />
             </div>
           </div>
 
@@ -235,10 +236,10 @@
             <div><dt>Initiation fee <small>once-off: R165 plus 10% of the amount above R1 000</small></dt><dd data-q="i">R 215,00</dd></div>
             <div><dt>Service fee <small>R60 a month, charged for <span data-q="days">21 days</span></small></dt><dd data-q="s">R 42,00</dd></div>
             <div><dt>Interest <small>0,17% a day on the amount borrowed</small></dt><dd data-q="r">R 53,55</dd></div>
-            <div class="ledger-total"><dt>Total you repay, in one debit order</dt><dd data-q="t" data-flash>R 1 810,55</dd></div>
+            <div class="ledger-total"><dt>Total you repay, in one debit order on <span data-q="payday-long">Friday 24 October</span></dt><dd data-q="t" data-flash>R 1 810,55</dd></div>
           </dl>
           <div class="ledger-bar" data-q-bar aria-hidden="true"><span></span></div>
-          <p class="ledger-note tnum">Fees and interest come to <strong data-q="cost">R 310,55</strong>, which is <strong data-q="cost-pct">20,7%</strong> of the amount borrowed for this term.</p>
+          <p class="ledger-note tnum">Fees and interest come to <strong data-q="cost">R 310,55</strong>, which is <strong data-q="cost-pct">20,7%</strong> of the amount borrowed. The service fee and interest are charged per day for the <span data-q="days">21 days</span> from today to your payday; if your cash is paid out later than today, you pay for fewer days.</p>
         </div>
 
         <div class="costs-side">
@@ -349,6 +350,10 @@
         <details>
           <summary>Which documents do I need?</summary>
           <p>A copy of your South African ID, your latest payslip and your last three months of bank statements. We never ask for your online banking password.</p>
+        </details>
+        <details>
+          <summary>Why do you ask for my payday?</summary>
+          <p>Your repayment is collected on your payday, so the money is in your account when the debit order runs. Your payday must be 5 to 30 days away. If yours is sooner than that, you can apply in time for your following payday.</p>
         </details>
         <details>
           <summary>Can I settle early?</summary>
