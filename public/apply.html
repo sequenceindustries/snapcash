@@ -203,15 +203,11 @@
   </div>
 </main>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="site.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
 
   var PANES = ['account', 'verify', 'details', 'documents', 'popia', 'quote'];
   var STEP_OF = { account: 1, verify: 1, details: 2, documents: 3, popia: 4, quote: 5 };
@@ -232,59 +228,36 @@
 
   /* ---------- Resume: figure out where this user is in the journey ---------- */
   async function route() {
-    var s = await A.session();
-    if (!s) { show('account'); return; }
+    var st = await A.getAuthState(true);
+    if (st.state === 'signed_out') { show('account'); return; }
 
-    if (!s.user.email_confirmed_at) {
-      /* Same UX as before — this page's own "check your inbox" pane —
-         just now driven by the shared state definition explicitly. */
-      window._pendingEmail = s.user.email;
-      document.getElementById('v-email').textContent = s.user.email;
+    if (st.state === 'awaiting_email_confirmation') {
+      document.getElementById('v-email').textContent = st.user.email;
       show('verify'); return;
     }
+    if (st.state === 'requires_phone_enrolment') { location.href = 'verify-phone.html?next=apply.html'; return; }
+    if (st.state === 'requires_login_whatsapp_otp') { location.href = 'verify-login.html?next=apply.html'; return; }
 
-    if (!s.user.phone || !s.user.phone_confirmed_at) {
-      location.href = 'verify-phone.html?next=apply.html'; return;
-    }
-
-    var sid = A.getSessionId(s);
-    var loginVerified = await A.isLoginVerified(s.user.id, sid);
-    if (!loginVerified) { location.href = 'verify-login.html?next=apply.html'; return; }
-
-    /* fully_verified from here on — existing profile-completion routing */
-    var u = s.user.id;
-    var prof = (await db.from('profiles').select('popia_accepted, documents_submitted_at').eq('id', u).maybeSingle()).data;
+    /* fully_verified from here on */
+    var me = await A.api('GET', '/api/me');
+    if (!me.ok) return A.err(msg, me.error);
+    var prof = me.data.profile, app = me.data.application;
     if (!prof) {
-      /* Phone is already Supabase-verified by this point for every user —
-         pre-fill it so they don't retype a number they just confirmed. */
-      if (s.user.phone) document.getElementById('d-phone').value = s.user.phone.replace('+27', '0');
+      /* Their WhatsApp number is already verified — pre-fill it. */
+      if (me.data.user.phone) document.getElementById('d-phone').value = me.data.user.phone.replace('+27', '0');
       show('details'); return;
     }
     if (!prof.documents_submitted_at) { show('documents'); return; }
     if (!prof.popia_accepted) { show('popia'); return; }
-
-    var active = (await db.from('loan_applications').select('id')
-      .eq('user_id', u).in('status', ['pending_kyc','under_review','approved','disbursed'])
-      .maybeSingle()).data;
-    if (active) { location.href = 'dashboard.html'; return; }
+    if (app && ['pending_kyc', 'under_review', 'approved', 'debicheck_authorized', 'disbursed'].indexOf(app.status) !== -1) {
+      location.href = 'dashboard.html'; return;
+    }
     show('quote');
   }
 
   /* ---------- Strong password policy ---------- */
-  function passwordChecks(pw) {
-    return {
-      len: pw.length >= 12,
-      lower: /[a-z]/.test(pw),
-      upper: /[A-Z]/.test(pw),
-      digit: /[0-9]/.test(pw),
-      symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(pw)
-    };
-  }
-  function passwordOk(checks) {
-    return checks.len && checks.lower && checks.upper && checks.digit && checks.symbol;
-  }
   document.getElementById('a-pass').addEventListener('input', function () {
-    var c = passwordChecks(this.value);
+    var c = A.passwordChecks(this.value);
     document.getElementById('pw-req-len').setAttribute('data-ok', c.len);
     document.getElementById('pw-req-lower').setAttribute('data-ok', c.lower);
     document.getElementById('pw-req-upper').setAttribute('data-ok', c.upper);
@@ -298,17 +271,10 @@
     this.textContent = showing ? 'Show' : 'Hide';
   });
 
-  /* ---------- Google ----------
-     Same-origin absolute redirect, no extra scopes, no Google token
-     storage — see login.html for the full rationale (identical logic). */
-  document.getElementById('btn-google').addEventListener('click', async function () {
-    var btn = this;
-    btn.disabled = true;
-    var r = await db.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: location.origin + '/auth-callback.html' }
-    });
-    if (r.error) { btn.disabled = false; A.err(msg, 'Could not start Google sign-in. Please try again.'); }
+  /* ---------- Google ---------- */
+  document.getElementById('btn-google').addEventListener('click', function () {
+    this.disabled = true;
+    location.href = '/auth/google/start?next=apply.html';
   });
 
   /* ---------- Step 1: account ---------- */
@@ -316,176 +282,124 @@
     var email = document.getElementById('a-email').value.trim();
     var p1 = document.getElementById('a-pass').value, p2 = document.getElementById('a-pass2').value;
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return A.err(msg, 'Please enter a valid email address.');
-    if (!passwordOk(passwordChecks(p1))) return A.err(msg, 'Please meet all the password requirements shown below the field.');
-    if (p1 !== p2) return A.err(msg, 'The two passwords don\u2019t match.');
+    if (!A.passwordOk(A.passwordChecks(p1))) return A.err(msg, 'Please meet all the password requirements shown below the field.');
+    if (p1 !== p2) return A.err(msg, 'The two passwords don’t match.');
 
     busy(this, true);
-    var r = await db.auth.signUp({
-      email: email, password: p1,
-      options: { emailRedirectTo: location.origin + location.pathname }
-    });
+    var r = await A.api('POST', '/api/auth/signup', { email: email, password: p1 });
     busy(this, false);
+    if (!r.ok) return A.err(msg, r.error);
 
-    if (r.error) {
-      if (/already registered/i.test(r.error.message))
-        return A.err(msg, 'That email already has an account — please log in instead.');
-      return A.err(msg, r.error.message);
-    }
-    if (r.data.session) { route(); }                    // email confirmation OFF
-    else {                                              // confirmation ON
-      document.getElementById('v-email').textContent = email;
-      window._pendingEmail = email;
-      show('verify');
-    }
+    document.getElementById('v-email').textContent = email;
+    show('verify');
   });
 
   document.getElementById('btn-resend').addEventListener('click', async function () {
-    if (!window._pendingEmail) return;
     busy(this, true);
-    var r = await db.auth.resend({ type: 'signup', email: window._pendingEmail,
-      options: { emailRedirectTo: location.origin + location.pathname } });
+    var r = await A.api('POST', '/api/auth/resend-verification', {});
     busy(this, false);
-    r.error ? A.err(msg, r.error.message) : A.ok(msg, 'Sent — check your inbox (and spam folder).');
+    r.ok ? A.ok(msg, 'Sent — check your inbox (and spam folder).') : A.err(msg, r.error);
   });
 
   /* ---------- Step 2: details ---------- */
   document.getElementById('btn-details').addEventListener('click', async function () {
-    var s = await A.session(); if (!s) return show('account');
     var first = document.getElementById('d-first').value.trim();
     var last = document.getElementById('d-last').value.trim();
     var said = document.getElementById('d-id').value.replace(/\s+/g, '');
     var phone = document.getElementById('d-phone').value.replace(/\s+/g, '');
-    var emp = document.getElementById('d-emp').value;
-    var employer = document.getElementById('d-employer').value.trim();
-    var jobTitle = document.getElementById('d-jobtitle').value.trim();
-    var income = Number(document.getElementById('d-income').value);
-    var address = document.getElementById('d-address').value.trim();
+    var incomeRaw = document.getElementById('d-income').value;
+    var income = Number(incomeRaw);
 
     var okId = A.validSaId(said), okPh = A.validZaPhone(phone);
     document.getElementById('e-id').style.display = okId ? 'none' : 'block';
     document.getElementById('e-phone').style.display = okPh ? 'none' : 'block';
     if (!first || !last) return A.err(msg, 'Please fill in your first and last name.');
     if (!okId || !okPh) return;
-    if (!(income >= 0)) return A.err(msg, 'Please enter your monthly income after deductions.');
+    if (incomeRaw === '' || !(income >= 0)) return A.err(msg, 'Please enter your monthly income after deductions.');
 
     busy(this, true);
-    var r = await db.from('profiles').upsert({
-      id: s.user.id, email: s.user.email, first_name: first, last_name: last, sa_id_number: said,
-      phone_number: phone, employment_status: emp, employer: employer, job_title: jobTitle,
-      monthly_net_income: income, physical_address: address
+    var r = await A.api('PUT', '/api/me/profile', {
+      first_name: first, last_name: last, sa_id_number: said, phone_number: phone,
+      employment_status: document.getElementById('d-emp').value,
+      employer: document.getElementById('d-employer').value.trim(),
+      job_title: document.getElementById('d-jobtitle').value.trim(),
+      monthly_net_income: income,
+      physical_address: document.getElementById('d-address').value.trim()
     });
     busy(this, false);
-
-    if (r.error) {
-      if (r.error.code === '23505') return A.err(msg, 'That ID number is already registered with another account.');
-      return A.err(msg, 'Could not save your details: ' + r.error.message);
-    }
+    if (!r.ok) return A.err(msg, r.error);
     show('documents');
   });
 
   /* ---------- Step 3: documents ---------- */
-  function extOf(file) {
-    var m = /\.([a-z0-9]+)$/i.exec(file.name);
-    return m ? m[1].toLowerCase() : 'bin';
-  }
   function validDoc(file) {
-    var okType = /\.(pdf|jpg|jpeg|png)$/i.test(file.name);
-    var okSize = file.size <= 10 * 1024 * 1024;
-    return okType && okSize;
+    return /\.(pdf|jpg|jpeg|png)$/i.test(file.name) && file.size <= 10 * 1024 * 1024;
   }
 
   document.getElementById('btn-documents').addEventListener('click', async function () {
-    var s = await A.session(); if (!s) return show('account');
     var idFile = document.getElementById('doc-id').files[0];
     var paySlipFile = document.getElementById('doc-payslip').files[0];
     var stmtFiles = Array.prototype.slice.call(document.getElementById('doc-statements').files);
 
     var okId = !!idFile && validDoc(idFile);
     var okPay = !!paySlipFile && validDoc(paySlipFile);
-    var okStmt = stmtFiles.length > 0 && stmtFiles.every(validDoc);
+    var okStmt = stmtFiles.length > 0 && stmtFiles.length <= 6 && stmtFiles.every(validDoc);
 
     document.getElementById('e-doc-id').style.display = okId ? 'none' : 'block';
     document.getElementById('e-doc-payslip').style.display = okPay ? 'none' : 'block';
     document.getElementById('e-doc-statements').style.display = okStmt ? 'none' : 'block';
     if (idFile && !validDoc(idFile)) document.getElementById('e-doc-id').textContent = 'PDF, JPG or PNG only, up to 10MB.';
     if (paySlipFile && !validDoc(paySlipFile)) document.getElementById('e-doc-payslip').textContent = 'PDF, JPG or PNG only, up to 10MB.';
-    if (stmtFiles.length && !stmtFiles.every(validDoc)) document.getElementById('e-doc-statements').textContent = 'PDF, JPG or PNG only, up to 10MB each.';
+    if (stmtFiles.length > 6) document.getElementById('e-doc-statements').textContent = 'Please choose up to 6 statement files.';
+    else if (stmtFiles.length && !stmtFiles.every(validDoc)) document.getElementById('e-doc-statements').textContent = 'PDF, JPG or PNG only, up to 10MB each.';
     if (!okId || !okPay || !okStmt) return;
+
+    var fd = new FormData();
+    fd.append('id', idFile);
+    fd.append('payslip', paySlipFile);
+    stmtFiles.forEach(function (f) { fd.append('statements', f); });
 
     var btn = this, progressEl = document.getElementById('doc-progress');
     busy(btn, true);
     progressEl.style.display = 'block';
+    progressEl.textContent = 'Uploading ' + (2 + stmtFiles.length) + ' files…';
 
-    var uploads = [
-      { file: idFile, path: s.user.id + '/id.' + extOf(idFile), label: 'ID' },
-      { file: paySlipFile, path: s.user.id + '/payslip.' + extOf(paySlipFile), label: 'payslip' }
-    ];
-    stmtFiles.forEach(function (f, i) {
-      uploads.push({ file: f, path: s.user.id + '/statement-' + (i + 1) + '.' + extOf(f), label: 'statement ' + (i + 1) });
-    });
-
-    for (var i = 0; i < uploads.length; i++) {
-      progressEl.textContent = 'Uploading ' + uploads[i].label + '\u2026 (' + (i + 1) + ' of ' + uploads.length + ')';
-      var up = await db.storage.from('applicant-documents').upload(uploads[i].path, uploads[i].file, { upsert: true });
-      if (up.error) {
-        busy(btn, false);
-        progressEl.style.display = 'none';
-        return A.err(msg, 'Could not upload your ' + uploads[i].label + ': ' + up.error.message);
-      }
-    }
-
-    var r = await db.from('profiles').update({ documents_submitted_at: new Date().toISOString() }).eq('id', s.user.id);
+    var r = await A.api('POST', '/api/me/documents', fd);
     busy(btn, false);
     progressEl.style.display = 'none';
-
-    if (r.error) return A.err(msg, 'Documents uploaded, but we could not save your progress: ' + r.error.message);
+    if (!r.ok) return A.err(msg, r.error);
     show('popia');
   });
 
-  /* ---------- Step 3: POPIA ---------- */
+  /* ---------- Step 4: POPIA ---------- */
   document.getElementById('btn-popia').addEventListener('click', async function () {
-    var s = await A.session(); if (!s) return show('account');
     var boxes = document.querySelectorAll('.c-req');
     var all = Array.prototype.every.call(boxes, function (b) { return b.checked; });
     document.getElementById('e-popia').style.display = all ? 'none' : 'block';
     if (!all) return;
 
     busy(this, true);
-    var rows = Array.prototype.map.call(boxes, function (b, i) {
-      return {
-        user_id: s.user.id,
-        consent_type: b.getAttribute('data-type'),
-        consent_text: document.getElementById('ct-' + (i + 1)).textContent,
-        version: 'popia-v1.0',
-        granted: true,
-        user_agent: navigator.userAgent.slice(0, 250)
-      };
+    var r = await A.api('POST', '/api/me/consents', {
+      consents: Array.prototype.map.call(boxes, function (b) { return b.getAttribute('data-type'); })
     });
-    var r1 = await db.from('popia_consents').insert(rows);
-    var r2 = await db.from('profiles').update({
-      popia_accepted: true, popia_accepted_at: new Date().toISOString()
-    }).eq('id', s.user.id);
     busy(this, false);
-
-    if (r1.error || r2.error) return A.err(msg, 'Could not record your consent — please try again.');
+    if (!r.ok) return A.err(msg, r.error);
     show('quote');
   });
 
-  /* ---------- Step 4: submit application ---------- */
+  /* ---------- Step 5: submit application ---------- */
   document.getElementById('btn-submit').addEventListener('click', async function () {
-    var s = await A.session(); if (!s) return show('account');
-    var amount = Number(document.getElementById('amt').value);
-    var days = Number(document.getElementById('days').value);
-
     busy(this, true);
-    var r = await db.from('loan_applications')
-      .insert({ user_id: s.user.id, requested_amount: amount, term_days: days });
+    var r = await A.api('POST', '/api/applications', {
+      amount: Number(document.getElementById('amt').value),
+      days: Number(document.getElementById('days').value)
+    });
     busy(this, false);
 
-    if (r.error) {
-      if (r.error.code === '23505') { location.href = 'dashboard.html'; return; } // already has one
-      if (/POPIA/.test(r.error.message)) { show('popia'); return; }
-      return A.err(msg, 'Could not submit: ' + r.error.message);
+    if (!r.ok) {
+      if (r.data.step === 'dashboard') { location.href = 'dashboard.html'; return; }
+      if (r.data.step && PANES.indexOf(r.data.step) !== -1) { show(r.data.step); }
+      return A.err(msg, r.error);
     }
     location.href = 'dashboard.html?submitted=1';
   });

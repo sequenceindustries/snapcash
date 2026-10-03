@@ -66,34 +66,36 @@
   </div>
 </main>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
+  var q = new URLSearchParams(location.search);
 
-  /* Routes a freshly-authenticated (or already-signed-in) session through
-     the full mandatory sequence: confirmed email -> verified phone ->
-     this-login's WhatsApp challenge -> only then the actual app. */
+  if (q.get('verified')) A.ok(msg, 'Email confirmed — thank you. Log in to continue.');
+  if (q.get('verify') === 'expired') A.err(msg, 'That confirmation link has expired or was already used. Log in and we’ll send a fresh one.');
+  if (q.get('error') === 'google') A.err(msg, 'We couldn’t complete Google sign-in. Please try again.');
+  if (q.get('error') === 'google_cancelled') A.err(msg, 'Google sign-in was cancelled. Try again, or use email and password instead.');
+  if (q.get('error') === 'google_unavailable') A.err(msg, 'Google sign-in isn’t available right now — please use email and password.');
+  if (q.get('reset')) A.ok(msg, 'Password updated. Log in with your new password.');
+
+  /* Routes a signed-in session through the mandatory sequence: confirmed
+     email -> verified phone -> this login's WhatsApp code -> the app. */
   async function goNext() {
-    var st = await A.getAuthState();
-    if (st.state === 'signed_out') return; /* nothing to do, show the form */
+    var st = await A.getAuthState(true);
+    if (st.state === 'signed_out') return; /* show the form */
 
     if (st.state === 'awaiting_email_confirmation') {
       document.getElementById('pane-password').style.display = 'none';
       document.getElementById('pane-unconfirmed').style.display = '';
       return;
     }
-    if (st.state === 'requires_phone_enrolment') { location.href = 'verify-phone.html'; return; }
-    if (st.state === 'requires_login_whatsapp_otp') { location.href = 'verify-login.html'; return; }
+    var next = q.get('next') ? '?next=' + encodeURIComponent(q.get('next')) : '';
+    if (st.state === 'requires_phone_enrolment') { location.href = 'verify-phone.html' + next; return; }
+    if (st.state === 'requires_login_whatsapp_otp') { location.href = 'verify-login.html' + next; return; }
 
-    /* fully_verified: new users (no profile yet) finish at apply.html;
-       returning users go straight to their dashboard. */
-    var has = await A.hasProfile(st.session.user.id);
-    location.href = has ? 'dashboard.html' : 'apply.html';
+    /* fully_verified: new users (no profile yet) finish at apply.html. */
+    location.href = q.get('next') ? A.safeNextPage() : (st.hasProfile ? 'dashboard.html' : 'apply.html');
   }
   goNext();
 
@@ -110,14 +112,9 @@
     if (!email || !pass) return A.err(msg, 'Please enter your email and password.');
     var btn = document.getElementById('btn-login');
     btn.disabled = true; btn.classList.add('btn-loading');
-    var r = await db.auth.signInWithPassword({ email: email, password: pass });
+    var r = await A.api('POST', '/api/auth/login', { email: email, password: pass });
     btn.disabled = false; btn.classList.remove('btn-loading');
-    if (r.error) {
-      /* Deliberately generic — never confirms whether an email exists,
-         and unconfirmed-email is handled by goNext() after a successful
-         sign-in, not surfaced here as a distinct error. */
-      return A.err(msg, 'Incorrect email or password.');
-    }
+    if (!r.ok) return A.err(msg, r.error);
     goNext();
   }
   document.getElementById('btn-login').addEventListener('click', doLogin);
@@ -127,40 +124,24 @@
     e.preventDefault();
     var email = document.getElementById('l-email').value.trim();
     if (!email) return A.err(msg, 'Type your email above first, then click "Forgot your password?" again.');
-    var r = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/reset.html' });
-    /* Generic regardless of outcome — never confirms whether the email exists. */
+    var r = await A.api('POST', '/api/auth/forgot', { email: email });
+    if (!r.ok && r.status === 429) return A.err(msg, r.error);
+    /* Same answer regardless — never confirms whether the email exists. */
     A.ok(msg, 'If an account exists for ' + email + ', a reset link has been sent.');
   });
 
   document.getElementById('btn-resend-confirm').addEventListener('click', async function () {
-    var s = await A.session();
-    if (!s) return;
     var btn = this;
     btn.disabled = true; btn.classList.add('btn-loading');
-    var r = await db.auth.resend({ type: 'signup', email: s.user.email });
+    var r = await A.api('POST', '/api/auth/resend-verification', {});
     btn.disabled = false; btn.classList.remove('btn-loading');
-    r.error ? A.err(msg, 'Could not resend right now — please try again shortly.')
-            : A.ok(msg, 'Sent — check your inbox (and spam folder).');
+    r.ok ? A.ok(msg, 'Sent — check your inbox (and spam folder).') : A.err(msg, r.error);
   });
 
-  /* ---------- Google ----------
-     redirectTo MUST be an absolute URL on this site's own origin — see
-     auth-callback.html, which exchanges the code and then also runs
-     through goNext()'s equivalent logic (getAuthState -> the right step).
-     No extra scopes requested; we only need identity, not Google API
-     access, so no Google access/refresh token is stored anywhere. */
-  document.getElementById('btn-google').addEventListener('click', async function () {
-    var btn = this;
-    btn.disabled = true;
-    var r = await db.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: location.origin + '/auth-callback.html' }
-    });
-    if (r.error) {
-      btn.disabled = false;
-      A.err(msg, 'Could not start Google sign-in. Please try again.');
-    }
-    /* on success the browser is already navigating to Google — nothing more to do here */
+  document.getElementById('btn-google').addEventListener('click', function () {
+    this.disabled = true;
+    var next = A.safeNextPage('');
+    location.href = '/auth/google/start' + (q.get('next') && next ? '?next=' + encodeURIComponent(next) : '');
   });
 })();
 </script>

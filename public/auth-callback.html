@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Signing you in — snapcash</title>
+<link rel="icon" type="image/png" href="assets/favicon.png" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<main class="app-main" style="text-align:center; padding-top:120px;">
+  <p style="color:var(--muted); font-size:14px;">Signing you in…</p>
+  <div class="alert" id="msg" style="margin-top:20px;"></div>
+</main>
+
+<script src="auth.js"></script>
+<script>
+(function () {
+  var A = window.SnapAuth, msg = document.getElementById('msg');
+
+  /* The server has already exchanged Google's code and set the session
+     cookie before sending the browser here; this page only routes onward. */
+  async function run() {
+    var st = await A.getAuthState(true);
+    if (st.state === 'signed_out') {
+      A.err(msg, 'We couldn’t complete Google sign-in. Please try again.');
+      setTimeout(function () { location.href = 'login.html'; }, 2200);
+      return;
+    }
+    var next = new URLSearchParams(location.search).get('next');
+    var keep = next ? '?next=' + encodeURIComponent(next) : '';
+    var dest = {
+      awaiting_email_confirmation: 'login.html',
+      requires_phone_enrolment: 'verify-phone.html' + keep,
+      requires_login_whatsapp_otp: 'verify-login.html' + keep,
+      fully_verified: next ? A.safeNextPage() : (st.hasProfile ? 'dashboard.html' : 'apply.html')
+    }[st.state] || 'login.html';
+    location.href = dest;
+  }
+
+  run();
+})();
+</script>
+</body>
+</html>

@@ -58,14 +58,10 @@
   <style>@media (min-width: 860px){ .dash-grid { grid-template-columns: 1fr 1fr !important; } }</style>
 </main>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
 
   var fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
   var DATE = function (d) { return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }); };
@@ -87,24 +83,27 @@
       copy: 'All settled — nothing owing. Need a new cash bridge? Apply any time.' }
   };
 
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
   function reveal() { document.body.classList.remove('gate-loading'); }
 
   async function load() {
-    var s = await A.guardProtected(); if (!s) return; /* guard already redirected if needed */
+    var st = await A.guardProtected(); if (!st) return; /* guard already redirected if needed */
+    var me = await A.api('GET', '/api/me');
     reveal();
-    var u = s.user;
+    if (!me.ok) return A.err(msg, me.error);
+    var u = me.data.user;
 
     if (new URLSearchParams(location.search).get('submitted'))
       A.ok(msg, 'Application received! Here\u2019s where you track it.');
 
     /* profile */
-    var prof = (await db.from('profiles').select('*').eq('id', u.id).maybeSingle()).data;
+    var prof = me.data.profile;
     document.getElementById('greet').textContent =
-      prof ? 'Good day, ' + prof.first_name + '.' : 'Good day.';
+      prof ? 'Good day, ' + prof.first_name + '.' : 'Good day.'; /* textContent — safe */
 
     /* latest application */
-    var app = (await db.from('loan_applications').select('*')
-      .eq('user_id', u.id).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
+    var app = me.data.application;
 
     renderLoanCard(app, prof);
     renderTodo(u, prof, app);
@@ -153,7 +152,7 @@
   }
 
   function renderTodo(u, prof, app) {
-    var emailVerified = !!u.email_confirmed_at;
+    var emailVerified = !!u.emailVerified;
     var items = [
       { done: true, t: 'Account created', s: u.email },
       { done: emailVerified, t: 'Email verified',
@@ -169,7 +168,7 @@
     document.getElementById('todo').innerHTML = items.map(function (i) {
       return '<li class="' + (i.done ? 'done' : 'todo-pending') + '">' +
         '<span class="t-ic">' + (i.done ? '\u2713' : (i.soon ? '\u2026' : '!')) + '</span>' +
-        '<span>' + i.t + '<small>' + i.s + '</small></span></li>';
+        '<span>' + esc(i.t) + '<small>' + esc(i.s) + '</small></span></li>';
     }).join('');
   }
 

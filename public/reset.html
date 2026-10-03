@@ -21,26 +21,28 @@
   <p class="sub" style="margin-bottom: 26px;">You arrived here from the reset link in your email.</p>
   <div class="alert" id="msg"></div>
   <div class="form-card" style="max-width:none;">
-    <div class="form-group"><label for="r-pass">New password</label><input id="r-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" /></div>
+    <div class="form-group"><label for="r-pass">New password</label><input id="r-pass" type="password" autocomplete="new-password" placeholder="At least 12 characters, with A-z, 0-9 and a symbol" /></div>
     <div class="form-group"><label for="r-pass2">Confirm new password</label><input id="r-pass2" type="password" autocomplete="new-password" /></div>
     <button class="btn btn-blue" style="width:100%;" id="btn-reset">Save new password</button>
   </div>
 </main>
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
+  var token = new URLSearchParams(location.search).get('token');
+  if (!token) A.err(msg, 'This page needs the link from your reset email. Request a new one from the login page.');
+
   document.getElementById('btn-reset').addEventListener('click', async function () {
     var p1 = document.getElementById('r-pass').value, p2 = document.getElementById('r-pass2').value;
-    if (p1.length < 8) return A.err(msg, 'Password must be at least 8 characters.');
-    if (p1 !== p2) return A.err(msg, 'The two passwords don\u2019t match.');
-    var r = await A.client.auth.updateUser({ password: p1 });
-    if (r.error) return A.err(msg, r.error.message + ' — open the link from your email again.');
-    A.ok(msg, 'Password updated. Taking you to your dashboard\u2026');
-    setTimeout(function(){ location.href = 'dashboard.html'; }, 1200);
+    if (!A.passwordOk(A.passwordChecks(p1))) return A.err(msg, 'Use at least 12 characters with an uppercase and lowercase letter, a number and a symbol.');
+    if (p1 !== p2) return A.err(msg, 'The two passwords don’t match.');
+    var btn = this;
+    btn.disabled = true; btn.classList.add('btn-loading');
+    var r = await A.api('POST', '/api/auth/reset', { token: token, password: p1 });
+    btn.disabled = false; btn.classList.remove('btn-loading');
+    if (!r.ok) return A.err(msg, r.error);
+    location.href = 'login.html?reset=1';
   });
 })();
 </script>

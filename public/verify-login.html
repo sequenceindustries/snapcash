@@ -52,16 +52,12 @@
   <p class="linkline" style="margin-top:16px;">Not you? <a href="#" data-signout>Log out</a></p>
 </main>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
 
-  var verifiedPhone = null, currentSid = null;
+  var maskedPhone = '';
   var countdownTimer = null, resendTimer = null, otpSendInFlight = false;
 
   function reveal() { document.body.classList.remove('gate-loading'); }
@@ -124,32 +120,28 @@
     });
   });
 
-  function otpErrorMessage(error) {
-    var m = (error && error.message || '').toLowerCase();
-    if (/rate limit|too many/.test(m)) return 'Too many attempts — please wait a few minutes and try again.';
-    if (/expired/.test(m)) return 'That code has expired. Request a new one below.';
-    if (/invalid|token|otp/.test(m)) return 'That code isn\u2019t right. Check the digits and try again.';
-    if (/network|fetch|timeout/.test(m)) return 'Network problem — check your connection and try again.';
-    return 'We couldn\u2019t send a code right now. Please try again shortly.';
-  }
-
   async function sendChallenge(isResend) {
     if (otpSendInFlight) return;
     otpSendInFlight = true;
-    document.getElementById('wa-status').textContent = (isResend ? 'Sending a new code to ' : 'Sending a code to ') + A.maskPhone(verifiedPhone) + '…';
+    document.getElementById('wa-status').textContent = (isResend ? 'Sending a new code to ' : 'Sending a code to ') + maskedPhone + '…';
 
-    /* shouldCreateUser MUST be false here — this is re-authenticating an
-       existing, already-known user's already-verified number, never
-       creating a new identity from an arbitrary typed-in phone. */
-    var r = await db.auth.signInWithOtp({ phone: verifiedPhone, options: { shouldCreateUser: false } });
+    var r = await A.api('POST', '/api/auth/otp/send', {});
 
     otpSendInFlight = false;
-    if (r.error) {
+    if (!r.ok) {
       document.getElementById('wa-status').textContent = 'Verify it\u2019s you';
-      return A.err(msg, otpErrorMessage(r.error));
+      /* Codes can only be requested once a minute — show the boxes anyway
+         if one was already sent moments ago (e.g. after a page reload). */
+      if (r.status === 429) {
+        document.getElementById('otp-boxes').style.display = '';
+        document.getElementById('otp-meta').style.display = '';
+        document.getElementById('btn-verify-otp').style.display = '';
+        startResendCooldown();
+      }
+      return A.err(msg, r.error);
     }
 
-    document.getElementById('wa-status').textContent = 'Enter the 6-digit code sent to ' + A.maskPhone(verifiedPhone) + '.';
+    document.getElementById('wa-status').textContent = 'Enter the 6-digit code sent to ' + maskedPhone + '.';
     document.getElementById('otp-boxes').style.display = '';
     document.getElementById('otp-meta').style.display = '';
     document.getElementById('btn-verify-otp').style.display = '';
@@ -168,38 +160,29 @@
     var btn = this;
     btn.disabled = true; btn.classList.add('btn-loading');
 
-    /* type stays "sms" — delivery is via WhatsApp through the Send SMS
-       Hook, but Supabase's verification type is unaffected by that. */
-    var r = await db.auth.verifyOtp({ phone: verifiedPhone, token: code, type: 'sms' });
+    var r = await A.api('POST', '/api/auth/otp/verify', { code: code });
 
     btn.disabled = false; btn.classList.remove('btn-loading');
-    if (r.error) {
-      A.err(msg, otpErrorMessage(r.error));
+    if (!r.ok) {
+      A.err(msg, r.error);
       clearOtpBoxes();
       return;
     }
 
     clearTimers();
-    /* Record THIS session as challenge-complete. Note verifyOtp just
-       returned a (possibly new) session — re-derive the session id from
-       it rather than the one captured on page load, in case it rotated. */
-    var freshSid = A.getSessionId(r.data.session) || currentSid;
-    await A.recordLoginVerified(r.data.user.id, freshSid);
-
     location.href = A.safeNextPage();
   });
 
   async function gate() {
-    var st = await A.getAuthState();
+    var st = await A.getAuthState(true);
     if (st.state === 'signed_out') { location.href = 'login.html'; return; }
     if (st.state === 'awaiting_email_confirmation') { location.href = 'login.html'; return; }
     if (st.state === 'requires_phone_enrolment') { location.href = 'verify-phone.html' + location.search; return; }
     if (st.state === 'fully_verified') { location.href = A.safeNextPage(); return; }
 
     /* requires_login_whatsapp_otp — correct place */
-    verifiedPhone = st.session.user.phone;
-    currentSid = st.sessionId;
-    document.getElementById('wa-masked-number').textContent = A.maskPhone(verifiedPhone);
+    maskedPhone = st.user.maskedPhone;
+    document.getElementById('wa-masked-number').textContent = maskedPhone;
     reveal();
     sendChallenge(false);
   }

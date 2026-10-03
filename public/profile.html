@@ -90,7 +90,7 @@
     <h3 style="margin-bottom:16px;">Change password</h3>
     <div class="form-group">
       <label for="p-pass">New password</label>
-      <input id="p-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+      <input id="p-pass" type="password" autocomplete="new-password" placeholder="At least 12 characters, with A-z, 0-9 and a symbol" />
     </div>
     <div class="form-group">
       <label for="p-pass2">Confirm new password</label>
@@ -100,24 +100,22 @@
   </div>
 </main>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
 
   function reveal() { document.body.classList.remove('gate-loading'); }
 
   async function load() {
-    var s = await A.guardProtected(); if (!s) return;
+    var st = await A.guardProtected(); if (!st) return;
+    var me = await A.api('GET', '/api/me');
     reveal();
+    if (!me.ok) return A.err(msg, me.error);
 
-    document.getElementById('p-email').value = s.user.email;
+    document.getElementById('p-email').value = me.data.user.email;
 
-    var prof = (await db.from('profiles').select('*').eq('id', s.user.id).maybeSingle()).data;
+    var prof = me.data.profile;
     if (prof) {
       document.getElementById('p-said').value = prof.sa_id_number || '';
       document.getElementById('p-first').value = prof.first_name || '';
@@ -132,8 +130,6 @@
   }
 
   document.getElementById('btn-save-profile').addEventListener('click', async function () {
-    var s = await A.session(); if (!s) return location.href = 'login.html';
-
     var first = document.getElementById('p-first').value.trim();
     var last = document.getElementById('p-last').value.trim();
     var emp = document.getElementById('p-emp').value;
@@ -147,31 +143,31 @@
 
     var btn = this;
     btn.disabled = true; btn.classList.add('btn-loading');
-    var r = await db.from('profiles').update({
+    var r = await A.api('PUT', '/api/me/profile', {
       first_name: first, last_name: last,
       employment_status: emp, employer: employer, job_title: jobTitle,
       monthly_net_income: income, physical_address: address
-    }).eq('id', s.user.id);
+    });
     btn.disabled = false; btn.classList.remove('btn-loading');
 
-    if (r.error) return A.err(msg, 'Could not save: ' + r.error.message);
+    if (!r.ok) return A.err(msg, r.status === 409 ? 'Please complete your application first.' : r.error);
     A.ok(msg, 'Profile updated.');
   });
 
   document.getElementById('btn-change-password').addEventListener('click', async function () {
     var p1 = document.getElementById('p-pass').value, p2 = document.getElementById('p-pass2').value;
-    if (p1.length < 8) return A.err(msg, 'Password must be at least 8 characters.');
+    if (!A.passwordOk(A.passwordChecks(p1))) return A.err(msg, 'Use at least 12 characters with an uppercase and lowercase letter, a number and a symbol.');
     if (p1 !== p2) return A.err(msg, 'The two passwords don\u2019t match.');
 
     var btn = this;
     btn.disabled = true; btn.classList.add('btn-loading');
-    var r = await db.auth.updateUser({ password: p1 });
+    var r = await A.api('POST', '/api/me/password', { password: p1 });
     btn.disabled = false; btn.classList.remove('btn-loading');
 
-    if (r.error) return A.err(msg, 'Could not update password: ' + r.error.message);
+    if (!r.ok) return A.err(msg, r.error);
     document.getElementById('p-pass').value = '';
     document.getElementById('p-pass2').value = '';
-    A.ok(msg, 'Password updated.');
+    A.ok(msg, 'Password updated. Any other devices have been signed out.');
   });
 
   load();

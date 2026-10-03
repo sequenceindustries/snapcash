@@ -1,9 +1,26 @@
 {
-  "name": "snapcash-admin-backend",
-  "version": "1.0.0",
+  "name": "snapcash",
+  "version": "2.0.0",
   "private": true,
+  "type": "module",
+  "description": "snapcash.money — pages and API in one Node service, backed by Railway Postgres and a Railway bucket.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "migrate": "node server/migrate.js",
+    "make-admin": "node scripts/make-admin.js",
+    "test": "node --test test/*.test.js"
+  },
   "dependencies": {
-    "resend": "^3.2.0",
-    "@supabase/supabase-js": "^2.43.4"
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "bcryptjs": "^3.0.3",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "multer": "^2.4.0",
+    "pg": "^8.23.1"
   }
 }

@@ -415,14 +415,10 @@ table a:hover { text-decoration: underline; }
   </div>
 </div>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
 
   /* Navigation is wired FIRST, before any data-loading logic below, so a
      problem in a render/query function can never prevent the sidebar
@@ -445,6 +441,10 @@ table a:hover { text-decoration: underline; }
     e.preventDefault(); A.signOut();
   });
 
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  /* For values placed inside onclick='...' string arguments. */
+  function jsArg(v) { return esc(String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")); }
+
   var fmt = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 2 });
   var DATE = function (d) { return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }); };
   var STATE = { sortCol: 'created_at', sortDir: 'desc', currentView: 'queue',
@@ -453,89 +453,50 @@ table a:hover { text-decoration: underline; }
 
   document.getElementById('summary-date').textContent = new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+  var ME = null;
+
   async function auth() {
-    var s = await A.requireAuth('login.html'); if (!s) return;
-    document.getElementById('user-email').textContent = s.user.email;
+    var st = await A.guardProtected(); if (!st) return;
+    document.getElementById('user-email').textContent = st.user.email;
 
-    /* Check admin status via the non-recursive is_active_admin() function.
-       Unlike a raw table select, this can't be silently defeated by an RLS
-       hiccup — and if it errors, we SHOW the error rather than bouncing
-       the person out with no explanation. */
-    var isAdmin = false, checkErr = null;
-    try {
-      var r = await db.rpc('is_active_admin');
-      if (r.error) checkErr = r.error; else isAdmin = !!r.data;
-    } catch (e) { checkErr = e; }
-
-    if (checkErr) {
-      A.err(msg, 'Could not verify admin access (' + (checkErr.message || checkErr) + '). Check your connection and reload — you have not been signed out.');
-      return;
-    }
-    if (!isAdmin) {
-      A.err(msg, 'This account is not registered as an admin. Redirecting…');
+    var r = await A.api('GET', '/api/admin/me');
+    if (r.status === 403) {
+      A.err(msg, 'This account is not registered as an admin. Redirecting\u2026');
       setTimeout(function () { location.href = 'index.html'; }, 2200);
       return;
     }
-
+    if (!r.ok) {
+      A.err(msg, 'Could not verify admin access (' + r.error + '). Check your connection and reload — you have not been signed out.');
+      return;
+    }
+    ME = r.data;
+    var inviteBtn = document.getElementById('btn-invite');
+    if (inviteBtn && !ME.isOwner) inviteBtn.style.display = 'none';
     load();
   }
 
+  /* Rows come back flat (first_name/last_name on the row); keep the old
+     app.profiles shape so the render functions below stay unchanged. */
+  function shape(list) {
+    return (list || []).map(function (a) {
+      a.profiles = (a.first_name || a.last_name) ? { first_name: a.first_name || '', last_name: a.last_name || '' } : null;
+      return a;
+    });
+  }
+
   async function load() {
-    var profFields = 'first_name, last_name';
-
-    /* Queue: under_review applications */
-    var qr = await db.from('loan_applications')
-      .select('id, user_id, requested_amount, term_days, total_repayable, status, created_at, profiles(' + profFields + ')')
-      .eq('status', 'under_review')
-      .order('created_at', { ascending: false });
-    STATE.apps = qr.data || [];
-
-    /* Approved, awaiting DebiCheck authorisation */
-    var apr = await db.from('loan_applications')
-      .select('id, user_id, requested_amount, total_repayable, status, reviewed_at, profiles(' + profFields + ')')
-      .eq('status', 'approved')
-      .order('reviewed_at', { ascending: false });
-    STATE.approvedApps = apr.data || [];
-
-    /* DebiCheck authorised, awaiting disbursement */
-    var awp = await db.from('loan_applications')
-      .select('id, user_id, requested_amount, total_repayable, status, profiles(' + profFields + ')')
-      .eq('status', 'debicheck_authorized')
-      .order('created_at', { ascending: false });
-    STATE.awaitingPayoutApps = awp.data || [];
-
-    /* Disbursed — split client-side into active vs arrears by due date */
-    var dis = await db.from('loan_applications')
-      .select('id, user_id, requested_amount, total_repayable, due_date, disbursed_at, disbursed_amount, status, profiles(' + profFields + ')')
-      .eq('status', 'disbursed')
-      .order('due_date', { ascending: true });
-    var disbursedRows = dis.data || [];
-    var now = new Date();
-    STATE.activeApps = disbursedRows.filter(function (a) { return new Date(a.due_date) >= now; });
-    STATE.arrearsApps = disbursedRows.filter(function (a) { return new Date(a.due_date) < now; });
-
-    /* Declined */
-    var dec = await db.from('loan_applications')
-      .select('id, requested_amount, reviewed_at, decision_reason, profiles(' + profFields + ')')
-      .eq('status', 'declined')
-      .order('reviewed_at', { ascending: false });
-    STATE.declinedApps = dec.data || [];
-
-    /* Settled */
-    var set = await db.from('loan_applications')
-      .select('id, amount_collected, settled_at, collection_reference, profiles(' + profFields + ')')
-      .eq('status', 'settled')
-      .order('settled_at', { ascending: false });
-    STATE.settledApps = set.data || [];
-
-    /* Emails: recent logs */
-    var er = await db.from('email_logs').select('*').order('created_at', { ascending: false }).limit(50);
-    STATE.emails = er.data || [];
-
-    /* Admins */
-    var ar = await db.from('admin_users').select('*').order('created_at', { ascending: false });
-    STATE.admins = ar.data || [];
-
+    var r = await A.api('GET', '/api/admin/overview');
+    if (!r.ok) return A.err(msg, 'Could not load applications: ' + r.error);
+    var d = r.data;
+    STATE.apps = shape(d.queue);
+    STATE.approvedApps = shape(d.approved);
+    STATE.awaitingPayoutApps = shape(d.awaitingPayout);
+    STATE.activeApps = shape(d.active);
+    STATE.arrearsApps = shape(d.arrears);
+    STATE.declinedApps = shape(d.declined);
+    STATE.settledApps = shape(d.settled);
+    STATE.emails = d.emails || [];
+    STATE.admins = d.admins || [];
     render();
   }
 
@@ -563,12 +524,13 @@ table a:hover { text-decoration: underline; }
   }
 
   function nameOf(app) {
-    return app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '\u2014';
+    return app.profiles ? esc(app.profiles.first_name + ' ' + app.profiles.last_name) : '\u2014';
   }
 
   function renderQueue() {
     var rows = STATE.apps.map(function (app) {
-      var name = app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '—';
+      var rawName = app.profiles ? app.profiles.first_name + ' ' + app.profiles.last_name : '—';
+      var name = esc(rawName);
       return '<tr>' +
         '<td>' + DATE(app.created_at) + '</td>' +
         '<td>' + fmt.format(app.requested_amount) + '</td>' +
@@ -577,7 +539,7 @@ table a:hover { text-decoration: underline; }
         '<td><span class="status-badge status-' + app.status + '">' + (app.status === 'under_review' ? 'Under review' : app.status) + '</span></td>' +
         '<td><div class="actions">' +
           '<button class="view" onclick="viewDetails(\'' + app.id + '\')">View</button>' +
-          '<button class="docs" onclick="viewDocs(\'' + app.user_id + '\', \'' + name.replace(/'/g, "\\'") + '\')">Documents</button>' +
+          '<button class="docs" onclick="viewDocs(\'' + app.user_id + '\', \'' + jsArg(rawName) + '\')">Documents</button>' +
           '<button class="approve" onclick="decide(\'' + app.id + '\', \'approved\')">Approve</button>' +
           '<button class="decline" onclick="decide(\'' + app.id + '\', \'declined\')">Decline</button>' +
         '</div></td>' +
@@ -661,7 +623,7 @@ table a:hover { text-decoration: underline; }
         '<td><strong>' + nameOf(app) + '</strong></td>' +
         '<td>' + fmt.format(app.requested_amount) + '</td>' +
         '<td>' + (app.reviewed_at ? DATE(app.reviewed_at) : '\u2014') + '</td>' +
-        '<td>' + (app.decision_reason || '\u2014') + '</td>' +
+        '<td>' + (app.decision_reason ? esc(app.decision_reason) : '\u2014') + '</td>' +
       '</tr>';
     }).join('');
     document.getElementById('declined-rows').innerHTML = rows;
@@ -674,7 +636,7 @@ table a:hover { text-decoration: underline; }
         '<td><strong>' + nameOf(app) + '</strong></td>' +
         '<td>' + fmt.format(app.amount_collected) + '</td>' +
         '<td>' + (app.settled_at ? DATE(app.settled_at) : '\u2014') + '</td>' +
-        '<td>' + (app.collection_reference || '\u2014') + '</td>' +
+        '<td>' + (app.collection_reference ? esc(app.collection_reference) : '\u2014') + '</td>' +
       '</tr>';
     }).join('');
     document.getElementById('settled-rows').innerHTML = rows;
@@ -685,9 +647,9 @@ table a:hover { text-decoration: underline; }
     var rows = STATE.emails.map(function (e) {
       return '<tr>' +
         '<td>' + DATE(e.created_at) + '</td>' +
-        '<td>' + e.recipient_email + '</td>' +
-        '<td>' + e.email_type + '</td>' +
-        '<td><span class="status-badge" style="background:rgba(121,191,255,.15); color:var(--accent);">' + e.status + '</span></td>' +
+        '<td>' + esc(e.recipient_email) + '</td>' +
+        '<td>' + esc(e.email_type) + '</td>' +
+        '<td><span class="status-badge" style="background:rgba(121,191,255,.15); color:var(--accent);"' + (e.error_message ? ' title="' + esc(e.error_message) + '"' : '') + '>' + esc(e.status) + '</span></td>' +
       '</tr>';
     }).join('');
     document.getElementById('email-rows').innerHTML = rows;
@@ -695,11 +657,11 @@ table a:hover { text-decoration: underline; }
   }
 
   function renderAdmins() {
-    var rows = STATE.admins.filter(function(a) { return a.email !== 'sequence.2027@gmail.com'; }).map(function (a) {
+    var rows = STATE.admins.filter(function(a) { return a.role !== 'owner'; }).map(function (a) {
       return '<tr>' +
-        '<td>' + a.email + '</td>' +
-        '<td>' + a.role + '</td>' +
-        '<td><span class="status-badge">' + a.status + '</span></td>' +
+        '<td>' + esc(a.email) + '</td>' +
+        '<td>' + esc(a.role) + '</td>' +
+        '<td><span class="status-badge">' + esc(a.status) + '</span></td>' +
         '<td>' + (a.invited_at ? DATE(a.invited_at) : '—') + '</td>' +
       '</tr>';
     }).join('');
@@ -720,34 +682,19 @@ table a:hover { text-decoration: underline; }
   async function submitDecision(appId, decision) {
     var notes = document.getElementById('modal-notes').value;
     closeModal();
-    var s = await A.session();
-    if (!s) { A.err(msg, 'Your session expired — please log in again.'); return; }
     var btn = document.getElementById('modal-confirm');
     btn.disabled = true;
-
-    try {
-      /* Call backend endpoint to approve/decline */
-      var r = await fetch('https://snapcash-eight.vercel.app/api/admin-backend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.access_token },
-        body: JSON.stringify({ app_id: appId, decision: decision, notes: notes })
-      });
-
-      var body = {};
-      try { body = await r.json(); } catch (parseErr) { body = {}; }
-
-      if (!r.ok) return A.err(msg, body.error || ('Failed to save decision (status ' + r.status + ').'));
-      if (body.email_error) {
-        A.err(msg, 'Application ' + decision + ', but the email failed to send: ' + body.email_error + ' (the decision itself was saved).');
-      } else {
-        A.ok(msg, 'Application ' + decision + '. Email sent.');
-      }
-      setTimeout(load, 1000);
-    } catch (networkErr) {
-      A.err(msg, 'Could not reach the admin backend: ' + networkErr.message + '. Check your connection and try again.');
-    } finally {
-      btn.disabled = false;
+    var r = await A.api('POST', '/api/admin/applications/' + encodeURIComponent(appId) + '/decision', { decision: decision, notes: notes });
+    btn.disabled = false;
+    if (!r.ok) return A.err(msg, r.error);
+    if (r.data.email_status === 'failed') {
+      A.err(msg, 'Application ' + decision + ', but the email failed to send: ' + r.data.email_error + ' (the decision itself was saved).');
+    } else if (r.data.email_status === 'skipped') {
+      A.ok(msg, 'Application ' + decision + '. (Email not sent — email isn\u2019t configured yet.)');
+    } else {
+      A.ok(msg, 'Application ' + decision + '. Email sent.');
     }
+    load();
   }
 
   window.viewDocs = async function(userId, name) {
@@ -756,19 +703,18 @@ table a:hover { text-decoration: underline; }
     listEl.textContent = 'Loading\u2026';
     document.getElementById('modal-docs').classList.add('on');
 
-    var r = await db.storage.from('applicant-documents').list(userId);
-    if (r.error) { listEl.textContent = 'Could not load documents: ' + r.error.message; return; }
-    if (!r.data || !r.data.length) { listEl.textContent = 'No documents uploaded yet.'; return; }
-
-    var links = [];
-    for (var i = 0; i < r.data.length; i++) {
-      var path = userId + '/' + r.data[i].name;
-      var s = await db.storage.from('applicant-documents').createSignedUrl(path, 300);
-      if (s.data && s.data.signedUrl) {
-        links.push('<a href="' + s.data.signedUrl + '" target="_blank" rel="noopener" style="display:block; margin-bottom:8px;">' + r.data[i].name + '</a>');
-      }
-    }
-    listEl.innerHTML = links.length ? links.join('') : 'No documents uploaded yet.';
+    var r = await A.api('GET', '/api/admin/users/' + encodeURIComponent(userId) + '/documents');
+    if (!r.ok) { listEl.textContent = 'Could not load documents: ' + r.error; return; }
+    var docs = r.data.documents || [];
+    if (!docs.length) { listEl.textContent = 'No documents uploaded yet.'; return; }
+    var LABEL = { id: 'ID document', payslip: 'Payslip', statement: 'Bank statement' };
+    var n = 0;
+    listEl.innerHTML = docs.map(function (d) {
+      var label = LABEL[d.kind] || d.kind;
+      if (d.kind === 'statement') label += ' ' + (++n);
+      return '<a href="/api/admin/documents/' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener" style="display:block; margin-bottom:8px;">' +
+        esc(label) + (d.original_name ? ' <span style="color:var(--muted);">(' + esc(d.original_name) + ')</span>' : '') + '</a>';
+    }).join('');
   };
 
   window.viewDetails = async function(appId) {
@@ -777,17 +723,14 @@ table a:hover { text-decoration: underline; }
     body.innerHTML = 'Loading\u2026';
     document.getElementById('modal-details').classList.add('on');
 
-    var r = await db.from('loan_applications')
-      .select('*, profiles(first_name,last_name,email,sa_id_number,phone_number,employment_status,employer,job_title,monthly_net_income,physical_address,popia_accepted,popia_accepted_at,documents_submitted_at)')
-      .eq('id', appId).maybeSingle();
+    var r = await A.api('GET', '/api/admin/applications/' + encodeURIComponent(appId));
+    if (!r.ok) { body.textContent = 'Could not load details: ' + r.error; return; }
 
-    if (r.error || !r.data) { body.innerHTML = 'Could not load details: ' + (r.error ? r.error.message : 'not found'); return; }
-
-    var a = r.data, p = a.profiles || {};
+    var a = r.data.application, p = a;
     document.getElementById('details-title').textContent = (p.first_name || '') + ' ' + (p.last_name || '');
 
     function row(label, value) {
-      return '<div><dt>' + label + '</dt><dd>' + (value === null || value === undefined || value === '' ? '\u2014' : value) + '</dd></div>';
+      return '<div><dt>' + esc(label) + '</dt><dd>' + (value === null || value === undefined || value === '' ? '\u2014' : esc(value)) + '</dd></div>';
     }
 
     var html = '';
@@ -829,7 +772,7 @@ table a:hover { text-decoration: underline; }
     }
 
     html += '<div class="detail-section-title">Documents</div>' +
-      '<button class="btn btn-ghost" style="padding:8px 16px; font-size:13px;" onclick="closeModal(); viewDocs(\'' + a.user_id + '\', \'' + ((p.first_name || '') + ' ' + (p.last_name || '')).replace(/'/g, "\\'") + '\')">View uploaded documents</button>';
+      '<button class="btn btn-ghost" style="padding:8px 16px; font-size:13px;" onclick="closeModal(); viewDocs(\'' + a.user_id + '\', \'' + jsArg((p.first_name || '') + ' ' + (p.last_name || '')) + '\')">View uploaded documents</button>';
 
     body.innerHTML = html;
   };
@@ -837,8 +780,8 @@ table a:hover { text-decoration: underline; }
   window.markDebicheck = async function(appId) {
     var app = STATE.approvedApps.find(function(a) { return a.id === appId; });
     if (!confirm('Confirm that ' + (app ? nameOf(app) : 'this applicant') + '\u2019s DebiCheck debit order authority has been received?')) return;
-    var r = await db.rpc('mark_debicheck_authorized', { app_id: appId });
-    if (r.error) return A.err(msg, 'Could not mark as DebiCheck authorised: ' + r.error.message);
+    var r = await A.api('POST', '/api/admin/applications/' + encodeURIComponent(appId) + '/debicheck', {});
+    if (!r.ok) return A.err(msg, 'Could not mark as DebiCheck authorised: ' + r.error);
     A.ok(msg, 'Marked as DebiCheck authorised.');
     load();
   };
@@ -854,8 +797,8 @@ table a:hover { text-decoration: underline; }
       if (!(amount > 0)) return A.err(msg, 'Please enter a valid disbursed amount.');
       if (!reference) return A.err(msg, 'Please enter a disbursement reference.');
       closeModal();
-      var r = await db.rpc('mark_loan_disbursed', { app_id: appId, amount: amount, reference: reference });
-      if (r.error) return A.err(msg, 'Could not mark as disbursed: ' + r.error.message);
+      var r = await A.api('POST', '/api/admin/applications/' + encodeURIComponent(appId) + '/disburse', { amount: amount, reference: reference });
+      if (!r.ok) return A.err(msg, 'Could not mark as disbursed: ' + r.error);
       A.ok(msg, 'Marked as disbursed.');
       load();
     };
@@ -873,8 +816,8 @@ table a:hover { text-decoration: underline; }
       if (!(amount > 0)) return A.err(msg, 'Please enter a valid collected amount.');
       if (!reference) return A.err(msg, 'Please enter a collection reference.');
       closeModal();
-      var r = await db.rpc('mark_loan_settled', { app_id: appId, amount: amount, reference: reference });
-      if (r.error) return A.err(msg, 'Could not mark as settled: ' + r.error.message);
+      var r = await A.api('POST', '/api/admin/applications/' + encodeURIComponent(appId) + '/settle', { amount: amount, reference: reference });
+      if (!r.ok) return A.err(msg, 'Could not mark as settled: ' + r.error);
       A.ok(msg, 'Marked as settled.');
       load();
     };
@@ -892,6 +835,21 @@ table a:hover { text-decoration: underline; }
 
   document.getElementById('btn-invite').addEventListener('click', function() {
     document.getElementById('modal-invite').classList.add('on');
+  });
+
+  document.getElementById('btn-send-invite').addEventListener('click', async function () {
+    var email = document.getElementById('invite-email').value.trim();
+    var role = document.getElementById('invite-role').value;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return A.err(msg, 'Please enter a valid email address.');
+    var btn = this;
+    btn.disabled = true;
+    var r = await A.api('POST', '/api/admin/admins', { email: email, role: role });
+    btn.disabled = false;
+    closeModal();
+    if (!r.ok) return A.err(msg, r.error);
+    document.getElementById('invite-email').value = '';
+    A.ok(msg, email + ' added as ' + role + '. They get access when they sign in with that email.');
+    load();
   });
 
   auth();

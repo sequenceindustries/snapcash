@@ -67,14 +67,10 @@
   </div>
 </main>
 
-<script src="supabase-loader.js"></script>
-<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 (function () {
   var A = window.SnapAuth, msg = document.getElementById('msg');
-  if (A.showConfigWarning(msg)) return;
-  var db = A.client;
 
   var normalizedPhone = null;
   var countdownTimer = null, resendTimer = null, otpRequestInFlight = false;
@@ -85,7 +81,7 @@
      inspects state directly rather than calling the generic guard
      (which would just redirect back here). */
   async function gate() {
-    var st = await A.getAuthState();
+    var st = await A.getAuthState(true);
     if (st.state === 'signed_out') { location.href = 'login.html'; return; }
     if (st.state === 'awaiting_email_confirmation') { location.href = 'login.html'; return; }
     if (st.state === 'requires_login_whatsapp_otp') { location.href = 'verify-login.html' + location.search; return; }
@@ -152,16 +148,6 @@
     });
   });
 
-  function otpErrorMessage(error) {
-    var m = (error && error.message || '').toLowerCase();
-    if (/rate limit|too many/.test(m)) return 'Too many attempts — please wait a few minutes and try again.';
-    if (/expired/.test(m)) return 'That code has expired. Request a new one below.';
-    if (/already.*register|already.*exist|already.*use/.test(m)) return 'That number couldn\u2019t be used. Please try a different one or contact support.';
-    if (/invalid|token|otp/.test(m)) return 'That code isn\u2019t right. Check the digits and try again.';
-    if (/network|fetch|timeout/.test(m)) return 'Network problem — check your connection and try again.';
-    return 'We couldn\u2019t send a code right now. Please try again shortly.';
-  }
-
   function showOtpPane() {
     document.getElementById('wa-masked-number').textContent = A.maskPhone(normalizedPhone);
     document.getElementById('pane-phone').style.display = 'none';
@@ -193,17 +179,12 @@
     var sendBtn = document.getElementById('btn-send-otp');
     if (!isResend) { sendBtn.disabled = true; sendBtn.classList.add('btn-loading'); }
 
-    /* Enrolling a phone onto an ALREADY authenticated user must go through
-       updateUser(), never signInWithOtp({shouldCreateUser:true}) — the
-       latter creates a brand-new anonymous-phone identity instead of
-       attaching the number to this person's existing account. Calling
-       updateUser({phone}) is what triggers Supabase to send the OTP here. */
-    var r = await db.auth.updateUser({ phone: candidate });
+    var r = await A.api('POST', '/api/auth/phone/start', { phone: candidate });
 
     otpRequestInFlight = false;
     if (!isResend) { sendBtn.disabled = false; sendBtn.classList.remove('btn-loading'); }
 
-    if (r.error) return A.err(msg, otpErrorMessage(r.error));
+    if (!r.ok) return A.err(msg, r.error);
 
     normalizedPhone = candidate;
     if (isResend) {
@@ -225,33 +206,17 @@
     var btn = this;
     btn.disabled = true; btn.classList.add('btn-loading');
 
-    /* type MUST be phone_change here — this OTP is confirming a phone
-       being attached to an existing account, not a phone-only sign-in. */
-    var r = await db.auth.verifyOtp({ phone: normalizedPhone, token: code, type: 'phone_change' });
-
-    if (r.error) {
+    var r = await A.api('POST', '/api/auth/phone/verify', { code: code });
+    if (!r.ok) {
       btn.disabled = false; btn.classList.remove('btn-loading');
-      A.err(msg, otpErrorMessage(r.error));
+      A.err(msg, r.error);
       clearOtpBoxes();
       return;
     }
 
-    /* Confirm with a fresh fetch that Supabase itself now reports a
-       verified phone — don't just trust the local verifyOtp response. */
-    var check = await db.auth.getUser();
-    if (check.error || !check.data.user.phone_confirmed_at) {
-      btn.disabled = false; btn.classList.remove('btn-loading');
-      A.err(msg, 'Something went wrong confirming your number. Please try again.');
-      return;
-    }
-
+    /* Proving the phone in this session also counts as this login's
+       WhatsApp check (the server records that), so go straight on. */
     clearTimers();
-    /* They just proved ownership of their phone in this exact session —
-       that satisfies the mandatory per-login challenge too, so they
-       aren't immediately asked to do it again one page later. */
-    var sid = A.getSessionId((await db.auth.getSession()).data.session);
-    await A.recordLoginVerified(check.data.user.id, sid);
-
     location.href = A.safeNextPage();
   });
 
