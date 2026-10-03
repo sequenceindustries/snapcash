@@ -106,11 +106,12 @@
   }
 
   function pickStage() {
-    var mid = window.innerHeight * (window.innerWidth <= 900 ? 0.62 : 0.5);
+    var mid = window.innerHeight * (window.innerWidth <= 900 ? 0.72 : 0.58);
     var best = 0;
+    /* a step becomes current when its heading reaches the middle of the screen */
     steps.forEach(function (s, i) {
-      var r = s.getBoundingClientRect();
-      if (r.top < mid) best = i;
+      var h = s.querySelector('h3') || s;
+      if (h.getBoundingClientRect().top < mid) best = i;
     });
     setStage(best);
   }
