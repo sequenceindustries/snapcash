@@ -17,7 +17,7 @@
   <div class="wrap nav-inner">
     <a class="logo" href="index.html"><img src="assets/logo.png" alt="snapcash" class="logo-img"></a>
     <nav class="nav-links">
-      <a href="login.html">Login</a>
+      <a href="login.html">Log in</a>
       <a class="btn btn-blue" href="apply.html">Apply</a>
     </nav>
   </div>
@@ -30,14 +30,17 @@
   <div class="alert" id="msg"></div>
 
   <div class="form-card" style="max-width:none;">
-    <div class="steps">
-      <div class="step on" id="s1"></div><div class="step" id="s2"></div>
-      <div class="step" id="s3"></div><div class="step" id="s4"></div><div class="step" id="s5"></div>
-    </div>
+    <ol class="stepper" aria-label="Application progress">
+      <li id="s1"><span class="bar"></span><span class="lbl"><span class="ck"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.3 2.2 4.7-5"/></svg></span><span class="txt">Account</span></span></li>
+      <li id="s2"><span class="bar"></span><span class="lbl"><span class="ck"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.3 2.2 4.7-5"/></svg></span><span class="txt">Your details</span></span></li>
+      <li id="s3"><span class="bar"></span><span class="lbl"><span class="ck"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.3 2.2 4.7-5"/></svg></span><span class="txt">Documents</span></span></li>
+      <li id="s4"><span class="bar"></span><span class="lbl"><span class="ck"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.3 2.2 4.7-5"/></svg></span><span class="txt">Consent</span></span></li>
+      <li id="s5"><span class="bar"></span><span class="lbl"><span class="ck"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.3 2.2 4.7-5"/></svg></span><span class="txt">Confirm</span></span></li>
+    </ol>
 
     <!-- ============ STEP 1 · ACCOUNT ============ -->
     <div class="pane on" id="pane-account">
-      <h3 style="margin-bottom:4px;">Step 1 · Your account</h3>
+      <h3>Create your account</h3>
       <p style="font-size:14px; margin-bottom:18px;">This is the login you'll use to track your application and manage your loan. WhatsApp verification is required next, on every account.</p>
       <div class="form-group">
         <label for="a-email">Email</label>
@@ -78,7 +81,7 @@
 
     <!-- ============ STEP 1b · VERIFY EMAIL (only if confirmation is on) ============ -->
     <div class="pane" id="pane-verify">
-      <h3 style="margin-bottom:4px;">Check your inbox</h3>
+      <h3>Check your inbox</h3>
       <p style="font-size:14px; margin-bottom:18px;">We've sent a confirmation link to <strong id="v-email" style="color:var(--ink);"></strong>. Click it, then come back here — the link brings you straight back to this page to continue.</p>
       <button class="btn btn-ghost" style="width:100%;" id="btn-resend">Resend the email</button>
       <p class="linkline">Wrong address? <a href="apply.html">Start over</a></p>
@@ -86,10 +89,10 @@
 
     <!-- ============ STEP 2 · DETAILS ============ -->
     <div class="pane" id="pane-details">
-      <h3 style="margin-bottom:4px;">Step 2 · Who you are</h3>
+      <h3>Your details</h3>
       <p style="font-size:14px; margin-bottom:18px;">Exactly as they appear on your ID — we verify these against your bank account later.</p>
-      <div class="form-group"><label for="d-first">First name</label><input id="d-first" type="text" autocomplete="given-name" /></div>
-      <div class="form-group"><label for="d-last">Last name</label><input id="d-last" type="text" autocomplete="family-name" /></div>
+      <div class="form-group"><label for="d-first">First name</label><input id="d-first" type="text" autocomplete="given-name" /><p class="field-err">Please enter your first name as it appears on your ID.</p></div>
+      <div class="form-group"><label for="d-last">Last name</label><input id="d-last" type="text" autocomplete="family-name" /><p class="field-err">Please enter your last name as it appears on your ID.</p></div>
       <div class="form-group">
         <label for="d-id">South African ID number</label>
         <input id="d-id" type="text" inputmode="numeric" maxlength="13" placeholder="13 digits" />
@@ -120,7 +123,8 @@
       </div>
       <div class="form-group">
         <label for="d-income">Monthly income after deductions (R)</label>
-        <input id="d-income" type="number" min="0" step="1" placeholder="e.g. 12500" />
+        <input id="d-income" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 12500" />
+        <p class="field-err">Please enter your monthly income after deductions, in rand.</p>
       </div>
       <div class="form-group">
         <label for="d-address">Physical address</label>
@@ -131,7 +135,7 @@
 
     <!-- ============ STEP 3 · DOCUMENTS ============ -->
     <div class="pane" id="pane-documents">
-      <h3 style="margin-bottom:4px;">Step 3 · Your documents</h3>
+      <h3>Your documents</h3>
       <p style="font-size:14px; margin-bottom:18px;">We review these directly — no automated bank-linking, just a real person confirming your identity and affordability. PDF, JPG or PNG, up to 10MB each.</p>
 
       <div class="form-group">
@@ -156,7 +160,7 @@
 
     <!-- ============ STEP 4 · POPIA ============ -->
     <div class="pane" id="pane-popia">
-      <h3 style="margin-bottom:4px;">Step 4 · Your consent</h3>
+      <h3>Your consent</h3>
       <p style="font-size:14px; margin-bottom:18px;">POPIA puts you in control of your personal information. Each consent below is recorded with its exact wording and a timestamp.</p>
       <label class="consent"><input type="checkbox" class="c-req" data-type="personal_information_processing" />
         <span id="ct-1">I consent to snapcash processing my personal information to assess this credit application, as described in the Privacy Policy.</span></label>
@@ -172,7 +176,7 @@
 
     <!-- ============ STEP 5 · QUOTE & SUBMIT ============ -->
     <div class="pane" id="pane-quote">
-      <h3 style="margin-bottom:4px;">Step 5 · Confirm your loan</h3>
+      <h3>Confirm your loan</h3>
       <p style="font-size:14px; margin-bottom:18px;">Adjust if you like — this exact breakdown is what we assess, and the total never changes after approval.</p>
 
       <div class="calc-row-head">
@@ -193,7 +197,7 @@
         <div class="q-line"><span>Cash to your account</span><span id="q-p">—</span></div>
         <div class="q-line"><span>Once-off initiation fee</span><span id="q-i">—</span></div>
         <div class="q-line"><span id="q-s-label">Service fee</span><span id="q-s">—</span></div>
-        <div class="q-line"><span>Interest (0,17%/day)</span><span id="q-r">—</span></div>
+        <div class="q-line"><span>Interest (0,17% a day)</span><span id="q-r">—</span></div>
         <div class="q-total"><span class="lbl" id="q-due">One repayment</span><span class="amt" id="q-t">—</span></div>
       </div>
 
@@ -216,9 +220,15 @@
     PANES.forEach(function (x) {
       document.getElementById('pane-' + x).className = 'pane' + (x === p ? ' on' : '');
     });
-    for (var i = 1; i <= 5; i++)
-      document.getElementById('s' + i).className = 'step' + (i <= STEP_OF[p] ? ' on' : '');
-    A.hide(msg); window.scrollTo({ top: 0 });
+    for (var i = 1; i <= 5; i++) {
+      var li = document.getElementById('s' + i);
+      li.className = i < STEP_OF[p] ? 'done' : (i === STEP_OF[p] ? 'current' : '');
+      if (i === STEP_OF[p]) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+    }
+    A.hide(msg);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    var h = document.querySelector('#pane-' + p + ' h3');
+    if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
   }
 
   function busy(btn, on) {
@@ -310,12 +320,15 @@
     var incomeRaw = document.getElementById('d-income').value;
     var income = Number(incomeRaw);
 
-    var okId = A.validSaId(said), okPh = A.validZaPhone(phone);
-    document.getElementById('e-id').style.display = okId ? 'none' : 'block';
-    document.getElementById('e-phone').style.display = okPh ? 'none' : 'block';
-    if (!first || !last) return A.err(msg, 'Please fill in your first and last name.');
-    if (!okId || !okPh) return;
-    if (incomeRaw === '' || !(income >= 0)) return A.err(msg, 'Please enter your monthly income after deductions.');
+    var $ = function (id) { return document.getElementById(id); };
+    var checks = [
+      [$('d-first'), !!first], [$('d-last'), !!last],
+      [$('d-id'), A.validSaId(said)], [$('d-phone'), A.validZaPhone(phone)],
+      [$('d-income'), incomeRaw !== '' && income >= 0]
+    ];
+    var firstBad = null;
+    checks.forEach(function (c) { if (!A.fieldState(c[0], c[1]) && !firstBad) firstBad = c[0]; });
+    if (firstBad) { A.fieldState(firstBad, false, null, true); return; }
 
     busy(this, true);
     var r = await A.api('PUT', '/api/me/profile', {
@@ -329,6 +342,16 @@
     busy(this, false);
     if (!r.ok) return A.err(msg, r.error);
     show('documents');
+  });
+
+  /* Check a field when the person leaves it, then keep it current as they fix it. */
+  [['d-first', function (v) { return !!v.trim(); }], ['d-last', function (v) { return !!v.trim(); }],
+   ['d-id', function (v) { return A.validSaId(v.replace(/\s+/g, '')); }],
+   ['d-phone', function (v) { return A.validZaPhone(v); }],
+   ['d-income', function (v) { return v !== '' && Number(v) >= 0; }]].forEach(function (pair) {
+    var el = document.getElementById(pair[0]), touched = false;
+    el.addEventListener('blur', function () { if (el.value !== '') { touched = true; A.fieldState(el, pair[1](el.value)); } });
+    el.addEventListener('input', function () { if (touched || el.closest('.is-invalid')) A.fieldState(el, pair[1](el.value)); });
   });
 
   /* ---------- Step 3: documents ---------- */

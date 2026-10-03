@@ -68,7 +68,7 @@
 
   var STATUS = {
     under_review: { badge: 'review',   label: 'Under review', tl: 1,
-      copy: 'We\u2019re assessing your application now. You\u2019ll be notified the moment there\u2019s a decision — usually within one business day in this phase.' },
+      copy: 'We\u2019re assessing your application now. You\u2019ll get an email as soon as there\u2019s a decision, whichever way it goes.' },
     pending_kyc:  { badge: 'review',   label: 'Verification pending', tl: 1,
       copy: 'We\u2019re confirming your identity and bank details.' },
     approved:     { badge: 'approved', label: 'Approved', tl: 3,
@@ -77,9 +77,9 @@
       copy: 'This application wasn\u2019t approved. That usually means the affordability numbers didn\u2019t support it right now — you\u2019re welcome to apply again when your situation changes.' },
     debicheck_authorized: { badge: 'approved', label: 'DebiCheck authorised', tl: 4,
       copy: 'We\u2019ve received your DebiCheck authorisation, thank you. Your payout is being arranged now.' },
-    disbursed:    { badge: 'approved', label: 'Loan active', tl: 4,
+    disbursed:    { badge: 'approved', label: 'Loan active', tl: 5,
       copy: 'Your cash has been paid out. Your single repayment is collected on the due date below via your debit order.' },
-    settled:      { badge: 'neutral',  label: 'Settled', tl: 4,
+    settled:      { badge: 'neutral',  label: 'Settled', tl: 5,
       copy: 'All settled — nothing owing. Need a new cash bridge? Apply any time.' }
   };
 
@@ -125,9 +125,11 @@
     }
 
     var st = STATUS[app.status] || STATUS.under_review;
-    var names = ['Received', 'Under review', 'Decision', 'DebiCheck', 'Payout'];
+    var names = ['Received', 'Under review', app.status === 'declined' ? 'Declined' : (st.tl >= 3 ? 'Approved' : 'Decision'), 'DebiCheck', app.status === 'settled' ? 'Settled' : 'Paid out'];
     var tl = names.map(function (n, i) {
       var cls = i < st.tl ? 'done' : (i === st.tl ? 'now' : '');
+      if (app.status === 'declined') cls = i < 2 ? 'done' : (i === 2 ? 'stop' : '');
+      if (i === 4 && st.tl === 5) cls = 'done paid';
       return '<div class="' + cls + '"><div class="bar"></div><span>' + n + '</span></div>';
     }).join('');
 
@@ -136,7 +138,7 @@
         '<h3>Application \u00b7 ' + fmt.format(app.requested_amount) + ' over ' + app.term_days + ' days</h3>' +
         '<span class="badge ' + st.badge + '">' + st.label + '</span>' +
       '</div>' +
-      (app.due_date ? '<p style="font-size:13.5px; color:var(--muted); margin:4px 0 0;">Debit order date: <strong style="color:var(--ink);">' + DATE(app.due_date) + '</strong></p>' : '') +
+      (app.due_date && (app.status === 'disbursed' || app.status === 'settled') ? '<p style="font-size:13.5px; color:var(--muted); margin:4px 0 0;">Debit order date: <strong style="color:var(--ink);">' + DATE(app.due_date) + '</strong></p>' : '') +
       '<div class="tl">' + tl + '</div>' +
       '<p style="font-size:14.5px; margin:16px 0 20px;">' + st.copy + '</p>' +
       '<div class="calc-quote" style="margin:0;">' +
@@ -144,7 +146,7 @@
         '<div class="q-line"><span>Once-off initiation fee</span><span>' + fmt.format(app.initiation_fee) + '</span></div>' +
         '<div class="q-line"><span>Service fee (' + app.term_days + ' days)</span><span>' + fmt.format(app.service_fee) + '</span></div>' +
         '<div class="q-line"><span>Interest (0,17%/day)</span><span>' + fmt.format(app.interest_amount) + '</span></div>' +
-        '<div class="q-total"><span class="lbl">One repayment on ' + (app.due_date ? DATE(app.due_date) : '\u2014') + '</span>' +
+        '<div class="q-total"><span class="lbl">' + (app.due_date && (app.status === 'disbursed' || app.status === 'settled') ? 'One repayment on ' + DATE(app.due_date) : 'One repayment, ' + app.term_days + ' days after payout') + '</span>' +
         '<span class="amt">' + fmt.format(app.total_repayable) + '</span></div>' +
       '</div>' +
       (app.status === 'declined' || app.status === 'settled'

@@ -79,8 +79,10 @@ export function createApp() {
     extensions: ['html'],
     dotfiles: 'ignore',
     setHeaders(res, filePath) {
-      if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-      else res.setHeader('Cache-Control', 'public, max-age=3600');
+      // Pages, styles and scripts revalidate on every visit so a deploy shows up at once;
+      // images change rarely and can be cached for a day.
+      if (/\.(png|jpe?g|svg|ico|webp)$/.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=86400');
+      else res.setHeader('Cache-Control', 'no-cache');
     },
   }));
 

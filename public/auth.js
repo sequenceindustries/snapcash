@@ -30,9 +30,28 @@
     /* Kept for page compatibility: there is no client-side setup any more. */
     showConfigWarning: function () { return false; },
 
-    err: function (el, msg) { el.className = 'alert'; el.textContent = msg; el.style.display = 'block'; },
+    err: function (el, msg) { el.className = 'alert'; el.textContent = msg; el.style.display = 'block'; el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); },
     ok: function (el, msg)  { el.className = 'alert ok'; el.textContent = msg; el.style.display = 'block'; },
     hide: function (el)     { el.style.display = 'none'; },
+
+    /* Marks one field valid or invalid: highlights it, shows its message,
+       and (when asked) moves focus to it — no shaking, no page-level noise. */
+    fieldState: function (input, ok, message, focus) {
+      var group = input.closest('.form-group');
+      if (!group) return ok;
+      var err = group.querySelector('.field-err');
+      group.classList.toggle('is-invalid', !ok);
+      group.classList.toggle('is-valid', !!ok && input.value !== '');
+      input.setAttribute('aria-invalid', ok ? 'false' : 'true');
+      if (err) {
+        if (message) err.textContent = message;
+        err.style.display = ok ? 'none' : 'block';
+        if (!err.id) err.id = (input.id || 'f') + '-err';
+        input.setAttribute('aria-describedby', err.id);
+      }
+      if (!ok && focus) { input.focus({ preventScroll: true }); group.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      return ok;
+    },
 
     /* SA ID: 13 digits + Luhn + embedded date sanity (the server checks again) */
     validSaId: function (id) {
