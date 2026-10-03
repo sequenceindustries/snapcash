@@ -21,7 +21,7 @@
   background: linear-gradient(90deg, transparent, rgba(94,179,228,0.4), transparent);
 }
 .guilloche-hero { width: 1100px; height: 1100px; right: -260px; top: 50%; margin-top: -560px; z-index: -1; }
-.guilloche-hero path { stroke: var(--sky); stroke-width: 0.7; opacity: 0.16; }
+.guilloche-hero path { stroke: var(--sky); stroke-width: 0.6; opacity: 0.09; }
 .hero-glow { position: absolute; width: 520px; height: 520px; right: 8%; top: 18%; border-radius: 50%; background: radial-gradient(circle, rgba(94,179,228,0.22), transparent 65%); filter: blur(20px); z-index: -1; }
 
 .hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: clamp(40px, 6vw, 88px); align-items: center; }
@@ -32,7 +32,7 @@
 .hero-facts li { display: flex; align-items: center; gap: 9px; font-size: 0.92rem; color: var(--n-body); }
 .hero-facts svg { width: 18px; height: 18px; fill: none; stroke: var(--sky); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; flex-shrink: 0; }
 
-.hero-visual { position: relative; display: flex; justify-content: center; }
+.hero-visual { position: relative; display: flex; justify-content: flex-start; }
 
 /* ---------- the amount card ("note") ---------- */
 .note {
@@ -80,17 +80,24 @@
 }
 .chip span { font-size: 0.76rem; color: var(--n-body); }
 .chip strong { font-family: var(--display); font-weight: 600; color: var(--n-ink); font-size: 1.02rem; }
-.chip-a { left: -54px; top: 22%; }
-.chip-b { right: -44px; top: 48%; }
-.chip-c { left: -30px; bottom: 9%; }
+/* The breakdown sits beside the card, never over it, so no figure is ever covered. */
+.chips { position: absolute; left: min(420px, 100%); top: 0; bottom: 0; width: 0; }
+.chip { left: 22px; }
+.chip::before { content: ""; position: absolute; right: 100%; top: 50%; width: 22px; height: 1px; background: linear-gradient(90deg, transparent, rgba(94,179,228,0.5)); }
+.chip-a { top: 30%; }
+.chip-b { top: 46%; }
+.chip-c { top: 62%; }
 
-@media (max-width: 1100px) { .chip-a { left: -24px; } .chip-b { right: -18px; } .chip-c { left: -12px; } }
+@media (max-width: 1239px) {
+  .hero-visual { flex-direction: column; align-items: flex-start; }
+  .chips { position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 420px; margin-top: 12px; }
+  .chip { position: static; min-width: 0; translate: none !important; }
+  .chip::before { display: none; }
+}
 @media (max-width: 960px) {
   .hero { grid-template-columns: 1fr; }
   .hero h1 { max-width: 14ch; }
-  .hero-visual { flex-direction: column; align-items: center; }
-  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 420px; margin-top: 12px; }
-  .chip { position: static; min-width: 0; transform: none !important; }
+  .hero-visual { align-items: center; }
 }
 @media (max-width: 520px) {
   .hero-stage { padding-top: calc(60px + 36px); }
@@ -126,7 +133,6 @@
 .story { padding: clamp(80px, 11vw, 140px) 0 clamp(40px, 6vw, 80px); }
 .story-head { max-width: 760px; margin-bottom: clamp(32px, 5vw, 60px); }
 .story-head h2 { margin-bottom: 14px; max-width: 18ch; }
-.story-head.wrap { margin-left: auto; margin-right: auto; }
 .story-head .sub { margin: 0; }
 .story-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 6vw, 80px); align-items: start; }
 .story-steps { list-style: none; padding: 0; margin: 0; }

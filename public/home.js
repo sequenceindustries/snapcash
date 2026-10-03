@@ -18,7 +18,7 @@
   function gcd(a, b) { return b ? gcd(b, a % b) : a; }
 
   var PATTERNS = {
-    hero:  [[96, 35, 58], [96, 35, 44], [96, 35, 30], [120, 47, 62]],
+    hero:  [[96, 35, 58], [96, 35, 38], [120, 47, 62]],
     note:  [[80, 29, 46], [80, 29, 34]],
     trust: [[96, 35, 58], [96, 35, 40]]
   };
@@ -100,7 +100,7 @@
     var dot = railItems[Math.max(0, current)].querySelector('i');
     var stageBox = stage.getBoundingClientRect();
     var dotY = dot.getBoundingClientRect().top + dot.offsetHeight / 2 - stageBox.top;
-    var maxY = stage.offsetHeight - card.offsetHeight - 24;
+    var maxY = stage.offsetHeight - card.offsetHeight - 34 - 28;
     var y = Math.max(0, Math.min(maxY, dotY - 34 - 42));
     card.style.setProperty('--y', y + 'px');
   }
